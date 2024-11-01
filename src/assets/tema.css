@@ -1,0 +1,14 @@
+/* Deixa o header em cima de tudo (inclusive mapas) */
+/* header {
+    z-index: 9999 !important;
+} */
+
+/* Deixa o popup em cima de tudo (inclusive header) */
+.mantine-Popover-dropdown {
+    z-index: 100000 !important;
+}
+
+/* Cor de fundo dos indicadores */
+.card-box-shadow {
+    box-shadow: 1px 5px 5px #c9c3c3
+}
