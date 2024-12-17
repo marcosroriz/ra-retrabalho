@@ -1,0 +1,7 @@
+#output-container-date-picker-range {
+  max-height: 100px; /* Altura máxima */
+  overflow-y: auto; /* Ativa rolagem vertical */
+  padding: 5px;
+  border: 1px solid #ccc; /* Opcional: adiciona borda */
+  border-radius: 5px; /* Bordas arredondadas */
+}

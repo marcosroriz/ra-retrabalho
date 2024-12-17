@@ -1,10 +1,10 @@
 import pandas as pd
 
-from infra.db.db_connection import DatabaseConnection
+from infra.db.db_connection import PGconnectionHandler
 
 class TripsEventService:
     def __init__(self):
-        self.conn = DatabaseConnection()
+        self.conn = PGconnectionHandler()
     
     def trips_in_day(self, start_date: str, end_date: str) -> list:
         '''Retorna as Trips de um dia selecionado'''
@@ -19,9 +19,9 @@ class TripsEventService:
             WHERE ta."TripStart" :: timestamp BETWEEN %s AND %s
         '''
         params = [start_date_, f"{end_date_} 23:59"]
-        df = pd.read_sql(query, self.conn, params=params)
+        df = pd.read_sql(query, self.conn.get_conn(), params=params)
 
-        return df['TripId'].tolist()
+        return df['inicio_trip'].tolist()
 
         
         
