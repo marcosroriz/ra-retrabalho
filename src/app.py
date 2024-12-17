@@ -4,16 +4,16 @@
 # Dashboard de RETRABALHO para o projeto RA / CEIA-UFG
 
 # Importar bibliotecas do dash
-import dash
 from dash import Dash, _dash_renderer, html, dcc, callback, Input, Output, State
 import dash_bootstrap_components as dbc
-import dash_ag_grid as dag
 import plotly.express as px
+import dash_ag_grid as dag
 import plotly.io as pio
+import dash
 
 # Extensões
-import dash_mantine_components as dmc
 from dash.exceptions import PreventUpdate
+import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 
 # Tema
@@ -47,6 +47,15 @@ scripts = [
 
 # Dash
 app = Dash("Dashboard de OSs", external_stylesheets=stylesheets, external_scripts=scripts, use_pages=True)
+import dash_auth
+VALID_USERNAME_PASSWORD_PAIRS = {
+    'hello': 'world'
+}
+auth = dash_auth.BasicAuth(
+    app,
+    VALID_USERNAME_PASSWORD_PAIRS,
+    secret_key='teste'
+)
 
 # Server
 server = app.server
