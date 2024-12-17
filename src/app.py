@@ -49,7 +49,7 @@ scripts = [
 app = Dash("Dashboard de OSs", external_stylesheets=stylesheets, external_scripts=scripts, use_pages=True)
 import dash_auth
 VALID_USERNAME_PASSWORD_PAIRS = {
-    'hello': 'world'
+    'admin': '1234'
 }
 auth = dash_auth.BasicAuth(
     app,
