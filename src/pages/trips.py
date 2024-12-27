@@ -1,64 +1,54 @@
+import random
 from dash import dcc, html, Input, Output, callback
-import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
+from datetime import datetime
+import pandas as pd
 import dash
+from services.trips_event import TripsEventService
 
 dash.register_page(__name__, path='/timeline', icon="material-symbols:timeline")
 
-# Dados de exemplo para a timeline
-example_data = [
-    {"vehicle": "Caminhão 1", "label": "Temperatura do Motor (Média)", "start": "2024-12-20 11:26", "end": "2024-12-20 13:41", "distance": 34},
-    {"vehicle": "Caminhão 2", "label": "Rotação Excessiva", "start": "2024-12-20 12:00", "end": "2024-12-20 12:30", "distance": 10},
-    {"vehicle": "Caminhão 1", "label": "Pressão do Óleo (Mínima Crítica)", "start": "2024-12-20 13:00", "end": "2024-12-20 14:00", "distance": 20},
-    {"vehicle": "Caminhão 3", "label": "Velocidade Acima do Limite", "start": "2024-12-20 14:00", "end": "2024-12-20 15:00", "distance": 50},
-    {"vehicle": "Caminhão 2", "label": "Consumo de Combustível Alto", "start": "2024-12-20 15:00", "end": "2024-12-20 16:00", "distance": 25},
-    {"vehicle": "Caminhão 3", "label": "Freadas Bruscas", "start": "2024-12-20 16:00", "end": "2024-12-20 17:00", "distance": 15},
-    {"vehicle": "Caminhão 1", "label": "Manutenção Preventiva", "start": "2024-12-20 17:00", "end": "2024-12-20 18:00", "distance": 5}
-]
-
-# Mapeamento de cores por tipo de evento
-color_map = {
-    "Temperatura do Motor (Média)": "#1f77b4",
-    "Rotação Excessiva": "#ff7f0e",
-    "Pressão do Óleo (Mínima Crítica)": "#2ca02c",
-    "Velocidade Acima do Limite": "#d62728",
-    "Consumo de Combustível Alto": "#9467bd",
-    "Freadas Bruscas": "#8c564b",
-    "Manutenção Preventiva": "#e377c2"
-}
-
-# Converter as datas dos eventos para timestamps
-def convert_to_timestamp(data):
-    for event in data:
-        event['start_ts'] = int(datetime.strptime(event['start'], '%Y-%m-%d %H:%M').timestamp())
-        event['end_ts'] = int(datetime.strptime(event['end'], '%Y-%m-%d %H:%M').timestamp())
-    return data
-
-example_data = convert_to_timestamp(example_data)
+# Função para gerar uma cor hexadecimal aleatória
+def generate_random_color():
+    return f'#{random.randint(0, 0xFFFFFF):06x}'
 
 # Função para gerar um gráfico de timeline
 def generate_timeline(data):
     fig = go.Figure()
 
+    # Dicionário para armazenar as cores dos eventos (para garantir cores únicas)
+    event_colors = {}
+
     for event in data:
-        fig.add_trace(go.Bar(
-            x=[event['start'], event['end']],
-            y=[event['label'], event['label']],
-            orientation='h',
-            marker=dict(color=color_map.get(event['label'], "#7f7f7f")),  # Cor dinâmica
+        event_type = event['evento']  # O tipo de evento é determinado pela chave 'evento'
+
+        # Se o tipo de evento ainda não tem uma cor atribuída, gera uma cor aleatória
+        if event_type not in event_colors:
+            event_colors[event_type] = generate_random_color()
+
+        # A cor associada ao tipo de evento
+        color = event_colors[event_type]
+
+        fig.add_trace(go.Scatter(
+            x=[event['data_evento'], event['data_evento']],  # Momentos exatos dos eventos
+            y=[event['evento']] * 2,  # Mesma posição para início e fim
+            mode='markers+lines',  # Mostrar pontos e uma linha de conexão
+            marker=dict(size=10, color=color),  # Cor dinâmica de acordo com o tipo de evento
             hoverinfo="text",
-            hovertext=(
-                f"Início: {event['start']}<br>Fim: {event['end']}<br>Distância: {event['distance']} km"
+            hovertext=(  # Exibir detalhes ao passar o mouse sobre os pontos
+                f"Viagem: {event['evento']}<br>"
+                f"Data e Hora: {event['data_evento'].strftime('%d/%m/%Y %H:%M')}<br>"  # Formatação de data e hora
+                f"Veículo: {event.get('veiculos', 'Não especificado')}"
             )
         ))
 
     fig.update_layout(
-        barmode='stack',
-        height=400,
-        yaxis=dict(title="Eventos"),
-        xaxis=dict(title="Horário"),
-        margin=dict(l=50, r=50, t=30, b=50)
+        height=600,  # Aumentar altura
+        width=1000,  # Aumentar largura
+        yaxis=dict(title="Viagens", automargin=True),  # Alterar título do eixo y
+        xaxis=dict(title="Horário", type="date", tickformat="%H:%M"),
+        margin=dict(l=50, r=50, t=30, b=50),
+        title="Timeline de Eventos"
     )
 
     return fig
@@ -67,46 +57,57 @@ def generate_timeline(data):
 layout = html.Div([
     dcc.Dropdown(
         id='vehicle-dropdown',
-        options=[
-            {'label': "Caminhão 1", 'value': "Caminhão 1"},
-            {'label': "Caminhão 2", 'value': "Caminhão 2"},
-            {'label': "Caminhão 3", 'value': "Caminhão 3"}
-        ],
         placeholder="Selecione um veículo",
         className="mb-3"
     ),
-    html.Div([
-        dcc.RangeSlider(
-            id='date-slider',
-            min=min(event['start_ts'] for event in example_data),
-            max=max(event['end_ts'] for event in example_data),
-            value=[
-                min(event['start_ts'] for event in example_data),
-                max(event['end_ts'] for event in example_data)
-            ],
-            marks={ts: datetime.fromtimestamp(ts).strftime('%d/%m %H:%M') for ts in 
-                   range(min(event['start_ts'] for event in example_data), 
-                         max(event['end_ts'] for event in example_data) + 1, 
-                         3600 * 6)},  # Incrementos de 6 horas
-            step=600,  # Passo de 10 minutos
-            tooltip={"always_visible": True, "placement": "bottom"}
-        )
-    ], className="mt-4"),
-    dcc.Graph(id='timeline-graph', figure=generate_timeline(example_data))
+    dcc.DatePickerSingle(
+        id='date-picker',
+        placeholder="Selecione uma data",
+        className="mb-3",
+        display_format="DD/MM/YYYY"  # Formato desejado
+    ),
+    dcc.Graph(id='timeline-graph')
 ])
 
-# Callback para atualizar a timeline
+# Callback para carregar veículos e atualizar o gráfico de timeline
 @callback(
+    Output('vehicle-dropdown', 'options'),
     Output('timeline-graph', 'figure'),
     Input('vehicle-dropdown', 'value'),
-    Input('date-slider', 'value')
+    Input('date-picker', 'date')
 )
-def update_timeline(selected_vehicle, date_range):
-    start_ts, end_ts = date_range
-    filtered_data = [
-        event for event in example_data
-        if (not selected_vehicle or event['vehicle'] == selected_vehicle)
-        and event['start_ts'] >= start_ts
-        and event['end_ts'] <= end_ts
-    ]
-    return generate_timeline(filtered_data)
+def update_components(selected_vehicle, selected_date):
+    db = TripsEventService()
+
+    # Consultar os veículos
+    try:
+        vehicles = db.get_vehicles()
+    except Exception as e:
+        vehicles = []
+        print(f"Erro ao buscar veículos: {e}")
+
+    dropdown_options = [{'label': vehicle, 'value': vehicle} for vehicle in vehicles]
+
+    # Caso nenhum veículo ou data seja selecionado, retornar apenas os veículos no dropdown
+    if not selected_vehicle or not selected_date:
+        return dropdown_options, go.Figure()
+
+    # Consultar eventos para o veículo selecionado
+    try:
+        events = db.get_events(selected_vehicle)
+        events['data_evento'] = pd.to_datetime(events['data_evento'], format='%Y-%m-%d %H:%M:%S')
+    except Exception as e:
+        print(f"Erro ao buscar eventos: {e}")
+        return dropdown_options, go.Figure()
+
+    # Filtrar apenas os eventos do dia selecionado
+    selected_date = pd.to_datetime(selected_date).date()
+    events = events[events['data_evento'].dt.date == selected_date]
+
+    # Caso não haja eventos, retornar o dropdown e um gráfico vazio
+    if events.empty:
+        return dropdown_options, go.Figure()
+
+    # Gerar timeline
+    fig = generate_timeline(events.to_dict(orient='records'))
+    return dropdown_options, fig
