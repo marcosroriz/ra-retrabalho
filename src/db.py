@@ -38,20 +38,20 @@ class PostgresSingleton:
         db_user = os.getenv("DB_USER")
         db_pass = os.getenv("DB_PASS")
         db_name = os.getenv("DB_NAME")
-        debug_mode = os.getenv("APP_DEBUG", "True")
+        debug_mode = bool(os.getenv("APP_DEBUG", True))
 
         db_url = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
         self._engine = create_engine(
             db_url,
             pool_size=10,  # Número de conexões na pool
             pool_pre_ping=True,  # Verifica se conexão tá viva antes de usar
-            echo=debug_mode,  # Se true, mostra os logs das queries
+            # echo=debug_mode,  # Se true, mostra os logs das queries
         )
         self._Session = sessionmaker(bind=self._engine)
         self._initialized = True  # Mark as initialized
 
     @classmethod
-    def getInstance(cls):
+    def get_instance(cls):
         """
         Retorna a singleton
         """

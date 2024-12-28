@@ -11,6 +11,8 @@ from datetime import date
 import numpy as np
 import pandas as pd
 import sqlite3
+import os
+import re
 
 # Importar bibliotecas do dash básicas e plotly
 import dash
@@ -29,11 +31,33 @@ from dash_iconify import DashIconify
 # Importar nossas constantes e funções utilitárias
 import tema
 import arq_utils
+import locale_utils
+
+# Banco de Dados
+from db import PostgresSingleton
 
 ##############################################################################
 # LEITURA DE DADOS ###########################################################
 ##############################################################################
 # Conexão com os bancos
+pgDB = PostgresSingleton.get_instance()
+pgEngine = pgDB.get_engine()
+
+# Obtem o quantitativo de OS por categoria
+df_os_categorias_pg = pd.read_sql(
+    """
+    SELECT "DESCRICAO DO SERVICO", COUNT(*) AS "QUANTIDADE" from os_dados od 
+    GROUP BY "DESCRICAO DO SERVICO"
+    """,
+    pgEngine,
+)
+
+# Colaboradores / Mecânicos
+df_mecanicos = pd.read_sql("SELECT * FROM colaboradores_frotas_os", pgEngine)
+
+# Veículos
+df_veiculos_pg = pd.read_sql("SELECT * FROM veiculos_api", pgEngine)
+
 con_banco_assets = sqlite3.connect(arq_utils.ARQUIVO_BANCO_ASSETS, check_same_thread=False)
 
 # Dataframes básicos (veículos)
@@ -44,25 +68,27 @@ df_os_servico = pd.read_sql_query("SELECT * FROM os_servico", con_banco_assets)
 
 # Definir colunas da tabela de detalhamento
 tbl_top10_os = [
-    {"field": "DIA"},
+    {"field": "DIA", "headerName:": "DIA"},
     {"field": "NUMERO DA OS", "headerName": "OS"},
     {"field": "CODIGO DO VEICULO", "headerName": "VEÍCULO"},
     {"field": "DESCRICAO DO VEICULO", "headerName": "MODELO"},
-    {"field": "DIAS_ATE_OS_CORRIGIR", "headerName": "DIAS"},
+    {"field": "DIAS_ATE_OS_CORRIGIR", "headerName": "DIAS ATÉ ESSA OS"},
 ]
 
 tbl_top10_vec = [
-    {"field": "CODIGO DO VEICULO", "headerName": "VEÍCULO"},
+    {"field": "CODIGO DO VEICULO", "headerName": "VEÍCULO", "maxWidth": 150},
     {"field": "TOTAL_DIAS_ATE_CORRIGIR", "headerName": "TOTAL DE DIAS GASTOS ATÉ CORRIGIR"},
 ]
 
 tbl_detalhes_vec_os = [
-    {"field": "NUMERO DA OS", "headerName": "OS", "maxWidth": 100},
+    {"field": "NUMERO DA OS", "headerName": "OS", "maxWidth": 150},
     {"field": "CLASSIFICACAO_EMOJI", "headerName": "STATUS", "maxWidth": 150},
-    {"field": "Nome", "headerName": "COLABORADOR"},
-    {"field": "DIA_INICIO", "headerName": "INÍCIO", "maxWidth": 150},
-    {"field": "DIA_TERMINO", "headerName": "FECHAMENTO", "maxWidth": 150},
-    {"field": "DIFF_DAYS", "headerName": "DIFF DIAS", "maxWidth": 200},
+    {"field": "LABEL_COLABORADOR", "headerName": "COLABORADOR"},
+    {"field": "DIA_INICIO", "headerName": "INÍCIO", "maxWidth": 350},
+    {"field": "DIA_TERMINO", "headerName": "FECHAMENTO", "maxWidth": 200},
+    {"field": "DIFF_DAYS", "headerName": "DIFF DIAS COM ANT", "maxWidth": 120},
+    {"field": "DIAS_ATE_OS_CORRIGIR", "headerName": "DIAS ATÉ CORRIGIR", "maxWidth": 150},
+    {"field": "NUM_OS_ATE_OS_CORRIGIR", "headerName": "NUM OS ATÉ CORRIGIR", "maxWidth": 150},
     {
         "field": "COMPLEMENTO DO SERVICO",
         "headerName": "DESCRIÇÃO",
@@ -106,7 +132,7 @@ layout = dbc.Container(
                                                 "label": f"{linha['DESCRICAO DO SERVICO']} ({linha['QUANTIDADE']})",
                                                 "value": linha["DESCRICAO DO SERVICO"],
                                             }
-                                            for ix, linha in df_os_servico.iterrows()
+                                            for ix, linha in df_os_categorias_pg.iterrows()
                                         ],
                                         multi=True,
                                         placeholder="Selecione uma ou mais OS",
@@ -135,8 +161,8 @@ layout = dbc.Container(
                                         allowSingleDateInRange=True,
                                         type="range",
                                         minDate=date(2024, 1, 1),
-                                        maxDate=date(2024, 10, 8),
-                                        value=[date(2024, 1, 1), date(2024, 10, 8)],
+                                        maxDate=date.today(),
+                                        value=[date(2024, 1, 1), date.today()],
                                     ),
                                 ],
                                 className="dash-bootstrap",
@@ -326,7 +352,11 @@ layout = dbc.Container(
                                 defaultColDef={"filter": True, "floatingFilter": True},
                                 columnSize="responsiveSizeToFit",
                                 # columnSize="sizeToFit",
-                                # dashGridOptions={"pagination": True, "animateRows": False},
+                                dashGridOptions={
+                                    "localeText": locale_utils.AG_GRID_LOCALE_BR,
+                                    # "pagination": True,
+                                    # "animateRows": False
+                                },
                             ),
                         ]
                     ),
@@ -342,7 +372,11 @@ layout = dbc.Container(
                                 rowData=[],
                                 defaultColDef={"filter": True, "floatingFilter": True},
                                 columnSize="responsiveSizeToFit",
-                                # dashGridOptions={"pagination": True, "animateRows": False},
+                                dashGridOptions={
+                                    "localeText": locale_utils.AG_GRID_LOCALE_BR,
+                                    # "pagination": True,
+                                    # "animateRows": False
+                                },
                             ),
                         ]
                     ),
@@ -389,10 +423,20 @@ layout = dbc.Container(
                     id="tabela-detalhes-vec-os",
                     columnDefs=tbl_detalhes_vec_os,
                     rowData=[],
-                    defaultColDef={"filter": True, "floatingFilter": True},
+                    defaultColDef={
+                        "filter": True,
+                        "floatingFilter": True,
+                        "wrapHeaderText": True,
+                        "initialWidth": 200,
+                        "autoHeaderHeight": True,
+                    },
                     columnSize="autoSize",
                     # columnSize="sizeToFit",
-                    # dashGridOptions={"pagination": True, "animateRows": False},
+                    dashGridOptions={
+                        "pagination": True,
+                        "animateRows": False,
+                        "localeText": locale_utils.AG_GRID_LOCALE_BR,
+                    },
                 ),
             ]
         ),
@@ -408,15 +452,19 @@ layout = dbc.Container(
 def obtem_dados_os(lista_os):
     # Query
     query = f"""
-        SELECT * FROM os 
+        SELECT * FROM os_dados od
         WHERE "DESCRICAO DO SERVICO" IN ({', '.join([f"'{x}'" for x in lista_os])})
+        AND od."CODIGO DO VEICULO" = '50325' 
     """
-    df_os_query = pd.read_sql_query(query, con_banco_assets).copy()
+    df_os_query = pd.read_sql_query(query, pgEngine).copy()
 
     # Tratamento de datas
-    df_os_query["DATA INICIO SERVICO"] = pd.to_datetime(df_os_query["DATA INICIO SERVICO"])
-    df_os_query["DATA_INICIO_SERVICO_DT"] = pd.to_datetime(df_os_query["DATA_INICIO_SERVICO_DT"])
-    df_os_query["DATA_FECHAMENTO_SERVICO_DT"] = pd.to_datetime(df_os_query["DATA_FECHAMENTO_SERVICO_DT"])
+    df_os_query["DATA INICIO SERVICO"] = pd.to_datetime(df_os_query["DATA INICIO SERVIÇO"])
+    df_os_query["DATA DE FECHAMENTO DO SERVICO"] = pd.to_datetime(df_os_query["DATA DE FECHAMENTO DO SERVICO"])
+
+    # TODO: Verificar se é necessário esses campos
+    df_os_query["DATA_INICIO_SERVICO_DT"] = pd.to_datetime(df_os_query["DATA INICIO SERVICO"])
+    df_os_query["DATA_FECHAMENTO_SERVICO_DT"] = pd.to_datetime(df_os_query["DATA DE FECHAMENTO DO SERVICO"])
 
     return df_os_query
 
@@ -435,11 +483,13 @@ def obtem_estatistica_retrabalho(df_os, min_dias):
     grouped_df = df_os_ordenada.groupby(["CODIGO DO VEICULO", "DESCRICAO DO SERVICO"])
 
     # Inicializa os dataframes com resultados
-    df_below_threshold = pd.DataFrame()  # Armazena OS abaixo do thresholdTo store orders below the threshold
-    df_previous_services = pd.DataFrame()  # To store the immediate previous service orders
-    df_fixes = pd.DataFrame()  # To store the previous service order when the current order exceeds the threshold
+    df_below_threshold = pd.DataFrame()  # Armazena OS abaixo do threshold
+    df_previous_services = pd.DataFrame()  # Para armazenar OS que fazem parte do retrabalho
+    df_fixes = pd.DataFrame()  # Para armazenar OS que encerram o problema
 
-    # Loop em cada grupo
+    # Loop em cada grupo, pois podemos ter mais de um problema selecionado
+    # Também processamos os veículos de forma individual
+    # TODO: Talvez seja interessante não fazer a distinção entre problema para possibilitar uma análise melhor entre OS
     for (codigo_veiculo, descricao_servico), group in grouped_df:
         # Ordena por dia
         group_df = group.sort_values(by="DATA_INICIO_SERVICO_DT").copy()
@@ -613,10 +663,10 @@ def plota_grafico_pizza_retrabalho(data):
         df_pie,
         values="QUANTIDADE",
         names="CATEGORIA",
-        color_discrete_sequence=tema.PALETA_CORES_QUALITATIVA,
+        # color_discrete_sequence=tema.PALETA_CORES_QUALITATIVA,
     )
     # Atualiza as fontes
-    fig.update_layout(font_family=tema.FONTE_GRAFICOS, font_size=tema.FONTE_TAMANHO)
+    # fig.update_layout(font_family=tema.FONTE_GRAFICOS, font_size=tema.FONTE_TAMANHO)
 
     # Arruma legenda e texto
     fig.update_traces(textinfo="value+percent", sort=False)
@@ -659,7 +709,7 @@ def plota_grafico_cumulativo_retrabalho(data):
         x="DIAS_ATE_OS_CORRIGIR",
         y="cumulative_percentage",
         labels={"DIAS_ATE_OS_CORRIGIR": "Dias", "cumulative_percentage": "Correções Cumulativas (%)"},
-        color_discrete_sequence=tema.PALETA_CORES_QUALITATIVA,
+        # color_discrete_sequence=tema.PALETA_CORES_QUALITATIVA,
     )
 
     fig.update_traces(
@@ -670,11 +720,18 @@ def plota_grafico_cumulativo_retrabalho(data):
     df_top = df_fixes_sorted.groupby("DIAS_ATE_OS_CORRIGIR", as_index=False).agg(
         cumulative_percentage=("cumulative_percentage", "max"), count=("DIAS_ATE_OS_CORRIGIR", "count")
     )
-    df_top["label"] = df_top.apply(lambda row: f"{row['cumulative_percentage']:.0f}% <br>({row['count']})", axis=1)
+    # Reseta o index para garantir a sequencialidade
+    df_top = df_top.reset_index(drop=True)
+    # Adiciona o rótulo vazio
+    df_top["label"] = ""
+    # Adiciona o rótulo a cada 4 registros
+    for i in range(len(df_top)):
+        if i % 4 == 0:
+            df_top.at[i, "label"] = f"{df_top.at[i, 'cumulative_percentage']:.0f}% <br>({df_top.at[i, 'count']})"
 
     fig.add_scatter(
         x=df_top["DIAS_ATE_OS_CORRIGIR"],
-        y=df_top["cumulative_percentage"],
+        y=df_top["cumulative_percentage"] + 3,
         mode="text",
         text=df_top["label"],
         textposition="middle right",
@@ -687,14 +744,14 @@ def plota_grafico_cumulativo_retrabalho(data):
     )
 
     # Atualiza as fontes
-    fig.update_layout(font_family=tema.FONTE_GRAFICOS, font_size=tema.FONTE_TAMANHO)
+    # fig.update_layout(font_family=tema.FONTE_GRAFICOS, font_size=tema.FONTE_TAMANHO)
 
     # Retorna o gráfico
     return fig
 
 
 @callback(Output("graph-retrabalho-por-modelo", "figure"), Input("store-dados-os", "data"))
-def plota_grafico_cumulativo_retrabalho(data):
+def plota_grafico_barras_retrabalho_por_modelo(data):
     if data["vazio"]:
         return go.Figure()
 
@@ -743,7 +800,7 @@ def plota_grafico_cumulativo_retrabalho(data):
         x="DESCRICAO DO MODELO",
         y=["PERC_RETRABALHO", "PERC_CORRECOES"],
         barmode="stack",
-        color_discrete_sequence=tema.PALETA_CORES_QUALITATIVA,
+        # color_discrete_sequence=tema.PALETA_CORES_QUALITATIVA,
         labels={
             "value": "Percentagem",
             "DESCRICAO DO SERVICO": "Ordem de Serviço",
@@ -773,7 +830,7 @@ def plota_grafico_cumulativo_retrabalho(data):
     bar_chart.update_traces(texttemplate="%{text}")
 
     # Atualiza as fontes
-    bar_chart.update_layout(font_family=tema.FONTE_GRAFICOS, font_size=tema.FONTE_TAMANHO)
+    # bar_chart.update_layout(font_family=tema.FONTE_GRAFICOS, font_size=tema.FONTE_TAMANHO)
 
     # Retorna o gráfico
     return bar_chart
@@ -919,21 +976,34 @@ def update_tabela_veiculos_detalhar(data, vec_detalhar, min_dias):
 
     # Junta os dados
     df_detalhar = pd.concat([df_previous_services_vec, df_fixes_vec])
-    df_detalhar = df_detalhar.sort_values(by=['CODIGO DO VEICULO', 'DESCRICAO DO SERVICO', 'DATA_INICIO_SERVICO_DT'])
-    
+    df_detalhar = df_detalhar.sort_values(by=["CODIGO DO VEICULO", "DESCRICAO DO SERVICO", "DATA_INICIO_SERVICO_DT"])
+
     # Formata datas
-    df_detalhar["DIA_INICIO"] = pd.to_datetime(df_detalhar["DATA INICIO SERVICO"]).dt.strftime("%d/%m/%Y")
-    df_detalhar["DIA_TERMINO"] = pd.to_datetime(df_detalhar["DATA DE FECHAMENTO DO SERVICO"]).dt.strftime("%d/%m/%Y")
+    df_detalhar["DIA_INICIO"] = pd.to_datetime(df_detalhar["DATA INICIO SERVICO"]).dt.strftime("%d/%m/%Y %H:%M")
+    df_detalhar["DIA_TERMINO"] = pd.to_datetime(df_detalhar["DATA DE FECHAMENTO DO SERVICO"]).dt.strftime(
+        "%d/%m/%Y %H:%M"
+    )
 
     # Computa DIFF
-    df_detalhar["DIFF_DAYS"] = pd.to_datetime(df_detalhar["DATA INICIO SERVICO"]).diff().dt.days
-    df_detalhar["DIFF_DAYS"] = df_detalhar["DIFF_DAYS"].fillna(0)
-    df_detalhar["DIFF_DAYS"] = df_detalhar["DIFF_DAYS"].astype(int)
+    # df_detalhar["DIFF_DAYS"] = pd.to_datetime(df_detalhar["DATA INICIO SERVICO"]).diff().dt.days
+    # df_detalhar["DIFF_DAYS"] = df_detalhar["DIFF_DAYS"].fillna(0)
+    # df_detalhar["DIFF_DAYS"] = df_detalhar["DIFF_DAYS"].astype(int)
 
-    # Seleciona os motoristas
-    df_motoristas = pd.read_sql_query("""SELECT * FROM motoristas""", con_banco_assets)
+    # Remove campos -1 em DIAS_ATE_OS_CORRIGIR', 'NUM_OS_ATE_OS_CORRIGIR'
+    df_detalhar = df_detalhar.replace("-1", "-")
 
-    # Mescla
-    df_merge = df_detalhar.merge(df_motoristas, left_on="COLABORADOR QUE EXECUTOU O SER", right_on="ID Colaborador")
+    # Encontra o colaborador
+    for ix, linha in df_detalhar.iterrows():
+        colaborador = linha["COLABORADOR QUE EXECUTOU O SERVICO"]
+        nome_colaborador = "Não encontrado"
+        if colaborador in df_mecanicos["cod_colaborador"].values:
+            nome_colaborador = df_mecanicos[df_mecanicos["cod_colaborador"] == colaborador]["nome_colaborador"].values[
+                0
+            ]
+            nome_colaborador = re.sub(r"(?<!^)([A-Z])", r" \1", nome_colaborador)
 
-    return df_merge.to_dict("records")
+        df_detalhar.at[ix, "LABEL_COLABORADOR"] = f"{colaborador} - {nome_colaborador}"
+
+    # df_merge = df_detalhar.merge(df_mecanicos, left_on="COLABORADOR QUE EXECUTOU O SERVICO", right_on="cod_colaborador")
+
+    return df_detalhar.to_dict("records")

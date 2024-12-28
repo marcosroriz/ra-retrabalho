@@ -17,6 +17,7 @@ import dash_bootstrap_components as dbc
 import dash_ag_grid as dag
 import plotly.express as px
 import plotly.io as pio
+import plotly.graph_objs as go
 
 # Extensões
 import dash_mantine_components as dmc
@@ -26,9 +27,14 @@ from dash_iconify import DashIconify
 # Tema
 import tema
 
+# Locale
+import locale
+
+# Locale
+locale.setlocale(locale.LC_ALL, "pt_BR")
+
 # Versão do React
 _dash_renderer._set_react_version("18.2.0")
-
 
 # Configurações de cores e temas
 TEMA = dbc.themes.LUMEN
@@ -50,7 +56,22 @@ stylesheets = [
 scripts = [
     "https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.10.8/dayjs.min.js",
     "https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.10.8/locale/pt.min.js",
+    "https://cdn.plot.ly/plotly-locale-pt-br-latest.js",
 ]
+
+# Seta o tema padrão do plotly
+pio.templates["tema"] = go.layout.Template(
+    layout=go.Layout(
+        font=dict(
+            family=tema.FONTE_GRAFICOS,
+            size=tema.FONTE_TAMANHO,  # Default font size
+        ),
+        colorway=tema.PALETA_CORES_QUALITATIVA,
+    )
+)
+
+# Seta o tema
+pio.templates.default = "tema"
 
 # Dash
 app = Dash("Dashboard de OSs", external_stylesheets=stylesheets, external_scripts=scripts, use_pages=True)
@@ -58,7 +79,7 @@ app = Dash("Dashboard de OSs", external_stylesheets=stylesheets, external_script
 # Server
 server = app.server
 
-
+# Cabeçalho
 header = dmc.Group(
     [
         dmc.Burger(id="burger-button", opened=False, hiddenFrom="md"),
@@ -68,6 +89,7 @@ header = dmc.Group(
     justify="flex-start",
 )
 
+# Menu
 navbar = dcc.Loading(
     dmc.ScrollArea(
         [
@@ -102,7 +124,7 @@ navbar = dcc.Loading(
     ),
 )
 
-
+# Corpo do app
 app_shell = dmc.AppShell(
     [
         dmc.AppShellHeader(header, p=24, style={"background-color": "#f8f9fa"}),
@@ -141,7 +163,7 @@ def navbar_is_open(opened, navbar):
 
 
 if __name__ == "__main__":
-    APP_DEBUG = os.getenv("APP_DEBUG", "True")
+    APP_DEBUG = bool(os.getenv("APP_DEBUG", "True"))
     APP_PORT = os.getenv("APP_PORT", 8050)
 
     app.run(debug=APP_DEBUG, port=APP_PORT)
