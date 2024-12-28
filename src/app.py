@@ -3,6 +3,13 @@
 
 # Dashboard de RETRABALHO para o projeto RA / CEIA-UFG
 
+# Dotenv
+import os
+from dotenv import load_dotenv
+
+# Carrega variáveis de ambiente
+load_dotenv()
+
 # Importar bibliotecas do dash
 import dash
 from dash import Dash, _dash_renderer, html, dcc, callback, Input, Output, State
@@ -134,7 +141,10 @@ def navbar_is_open(opened, navbar):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    APP_DEBUG = os.getenv("APP_DEBUG", "True")
+    APP_PORT = os.getenv("APP_PORT", 8050)
+
+    app.run(debug=APP_DEBUG, port=APP_PORT)
 
 # if __name__ == '__main__':
 #     port = int(os.environ.get("PORT", 8050))
