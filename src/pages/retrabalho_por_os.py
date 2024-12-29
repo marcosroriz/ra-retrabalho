@@ -556,6 +556,20 @@ layout = dbc.Container(
         dbc.Row(dmc.Space(h=20)),
         dbc.Row(
             [
+                dmc.LoadingOverlay(
+                    visible=True,
+                    id="loading-detalhes-vec-os",
+                    loaderProps={"size": "xl"},
+                    overlayProps={
+                        "radius": "lg",
+                        "blur": 2,
+                        "style": {
+                            "width": "100vw",  # Cover the entire width of the viewport
+                            "height": "100vh",  # Cover the entire height of the viewport
+                        },
+                    },
+                    zIndex=10,
+                ),
                 dag.AgGrid(
                     id="tabela-detalhes-vec-os",
                     columnDefs=tbl_detalhes_vec_os,
@@ -1195,6 +1209,7 @@ def update_lista_veiculos_detalhar(data):
 @callback(
     Output("tabela-detalhes-vec-os", "rowData"),
     [Input("store-dados-os", "data"), Input("input-lista-vec-detalhar", "value"), Input("input-dias", "value")],
+    running=[(Output("loading-detalhes-vec-os", "visible"), True, False)],
 )
 def update_tabela_veiculos_detalhar(data, vec_detalhar, min_dias):
     if data["vazio"] or vec_detalhar is None or vec_detalhar == "":

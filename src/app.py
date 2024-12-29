@@ -177,16 +177,16 @@ def navbar_is_open(opened, navbar):
 ##############################################################################
 # Auth #######################################################################
 ##############################################################################
-# df_users = pd.read_sql("SELECT * FROM users_ra_dash", pgEngine)
-# dict_users = df_users.set_index("ra_username")["ra_password"].to_dict()
+df_users = pd.read_sql("SELECT * FROM users_ra_dash", pgEngine)
+dict_users = df_users.set_index("ra_username")["ra_password"].to_dict()
 
-# auth = dash_auth.BasicAuth(app, dict_users)
+auth = dash_auth.BasicAuth(app, dict_users)
 
 ##############################################################################
 # MAIN #######################################################################
 ##############################################################################
 if __name__ == "__main__":
     APP_DEBUG = bool(os.getenv("APP_DEBUG", "True"))
-    APP_PORT = os.getenv("APP_PORT", 8050)
+    APP_PORT = os.getenv("APP_PORT", 10000)
 
     app.run(debug=APP_DEBUG, port=APP_PORT)
