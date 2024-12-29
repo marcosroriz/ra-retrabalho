@@ -179,8 +179,9 @@ def navbar_is_open(opened, navbar):
 ##############################################################################
 df_users = pd.read_sql("SELECT * FROM users_ra_dash", pgEngine)
 dict_users = df_users.set_index("ra_username")["ra_password"].to_dict()
+SECRET_KEY = os.getenv("SECRET_KEY")
 
-auth = dash_auth.BasicAuth(app, dict_users)
+auth = dash_auth.BasicAuth(app, dict_users, secret_key=SECRET_KEY)
 
 ##############################################################################
 # MAIN #######################################################################
