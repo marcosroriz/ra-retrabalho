@@ -10,7 +10,6 @@
 from datetime import date
 import numpy as np
 import pandas as pd
-import sqlite3
 import os
 import re
 
@@ -57,8 +56,6 @@ df_mecanicos = pd.read_sql("SELECT * FROM colaboradores_frotas_os", pgEngine)
 
 # Veículos
 df_veiculos_pg = pd.read_sql("SELECT * FROM veiculos_api", pgEngine)
-
-con_banco_assets = sqlite3.connect(arq_utils.ARQUIVO_BANCO_ASSETS, check_same_thread=False)
 
 # Dataframes básicos (veículos)
 df_veiculos = pd.read_sql("SELECT * FROM veiculos", con_banco_assets)

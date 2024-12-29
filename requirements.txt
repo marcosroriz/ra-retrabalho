@@ -18,3 +18,4 @@ gunicorn
 dash-tools
 python-dotenv
 sqlalchemy
+psycopg2
