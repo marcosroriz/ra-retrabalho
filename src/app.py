@@ -13,6 +13,7 @@ load_dotenv()
 # Importar bibliotecas do dash
 import dash
 from dash import Dash, _dash_renderer, html, dcc, callback, Input, Output, State
+import dash_auth
 import dash_bootstrap_components as dbc
 import dash_ag_grid as dag
 import plotly.express as px
@@ -26,6 +27,19 @@ from dash_iconify import DashIconify
 
 # Tema
 import tema
+
+# Pandas
+import pandas as pd
+
+# Banco de Dados
+from db import PostgresSingleton
+
+##############################################################################
+# CONFIGURAÇÕES BÁSICAS ######################################################
+##############################################################################
+# Conexão com os bancos
+pgDB = PostgresSingleton.get_instance()
+pgEngine = pgDB.get_engine()
 
 # Versão do React
 _dash_renderer._set_react_version("18.2.0")
@@ -66,6 +80,10 @@ pio.templates["tema"] = go.layout.Template(
 
 # Seta o tema
 pio.templates.default = "tema"
+
+##############################################################################
+# DASH #######################################################################
+##############################################################################
 
 # Dash
 app = Dash("Dashboard de OSs", external_stylesheets=stylesheets, external_scripts=scripts, use_pages=True)
@@ -156,13 +174,19 @@ def navbar_is_open(opened, navbar):
     return navbar
 
 
+##############################################################################
+# Auth #######################################################################
+##############################################################################
+df_users = pd.read_sql("SELECT * FROM users_ra_dash", pgEngine)
+dict_users = df_users.set_index("ra_username")["ra_password"].to_dict()
+
+auth = dash_auth.BasicAuth(app, dict_users)
+
+##############################################################################
+# MAIN #######################################################################
+##############################################################################
 if __name__ == "__main__":
     APP_DEBUG = bool(os.getenv("APP_DEBUG", "True"))
     APP_PORT = os.getenv("APP_PORT", 8050)
 
     app.run(debug=APP_DEBUG, port=APP_PORT)
-
-# if __name__ == '__main__':
-#     port = int(os.environ.get("PORT", 8050))
-#     print(f"Running on port {port}")
-#     app.run_server(debug=False, host='0.0.0.0', port=port)

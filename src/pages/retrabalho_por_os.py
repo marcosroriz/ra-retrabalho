@@ -851,7 +851,7 @@ def plota_grafico_cumulativo_retrabalho(data):
     elif 11 <= len(df_top) <= 30:
         label_frequency = 4
     elif len(df_top) >= 30:
-        label_frequency = math.ceil(len(df_top) / 10) + 1
+        label_frequency = math.ceil(len(df_top) / 20) + 1
 
     # Adiciona o rótulo a cada freq de registros
     for i in range(len(df_top)):
