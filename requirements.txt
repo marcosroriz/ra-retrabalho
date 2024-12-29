@@ -16,3 +16,4 @@ protobuf==5.27.2
 seaborn==0.13.2
 gunicorn
 dash-tools
+dotenv
