@@ -27,12 +27,6 @@ from dash_iconify import DashIconify
 # Tema
 import tema
 
-# Locale
-import locale
-
-# Locale
-locale.setlocale(locale.LC_ALL, "pt_BR")
-
 # Versão do React
 _dash_renderer._set_react_version("18.2.0")
 
