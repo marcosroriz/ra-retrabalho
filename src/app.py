@@ -13,7 +13,7 @@ load_dotenv()
 # Importar bibliotecas do dash
 import dash
 from dash import Dash, _dash_renderer, html, dcc, callback, Input, Output, State
-# import dash_auth
+import dash_auth
 import dash_bootstrap_components as dbc
 import dash_ag_grid as dag
 import plotly.express as px
