@@ -41,9 +41,6 @@ class PostgresSingleton:
         debug_mode = bool(os.getenv("APP_DEBUG", True))
 
         db_url = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
-        print("-----")
-        print("DB_URL", db_url)
-        print("------")
         self._engine = create_engine(
             db_url,
             pool_size=10,  # Número de conexões na pool
