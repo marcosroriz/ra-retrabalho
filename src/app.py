@@ -13,7 +13,7 @@ load_dotenv()
 # Importar bibliotecas do dash
 import dash
 from dash import Dash, _dash_renderer, html, dcc, callback, Input, Output, State
-import dash_auth
+# import dash_auth
 import dash_bootstrap_components as dbc
 import dash_ag_grid as dag
 import plotly.express as px
@@ -177,10 +177,10 @@ def navbar_is_open(opened, navbar):
 ##############################################################################
 # Auth #######################################################################
 ##############################################################################
-df_users = pd.read_sql("SELECT * FROM users_ra_dash", pgEngine)
-dict_users = df_users.set_index("ra_username")["ra_password"].to_dict()
+# df_users = pd.read_sql("SELECT * FROM users_ra_dash", pgEngine)
+# dict_users = df_users.set_index("ra_username")["ra_password"].to_dict()
 
-auth = dash_auth.BasicAuth(app, dict_users)
+# auth = dash_auth.BasicAuth(app, dict_users)
 
 ##############################################################################
 # MAIN #######################################################################
