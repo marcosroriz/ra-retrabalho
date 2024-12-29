@@ -344,6 +344,89 @@ layout = dbc.Container(
         html.Hr(),
         dbc.Row(
             [
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(id="indicador-media-os-colaborador", order=2),
+                                        DashIconify(
+                                            icon="icon-park-outline:average",
+                                            width=48,
+                                            color="black",
+                                        ),
+                                    ],
+                                    justify="space-around",
+                                    mt="md",
+                                    mb="xs",
+                                ),
+                            ),
+                            dbc.CardFooter("Média de OS / Mecânico"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=4,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(
+                                            id="indicador-media-porcentagem-retrabalho",
+                                            order=2,
+                                        ),
+                                        DashIconify(
+                                            icon="pepicons-pop:rewind-time",
+                                            width=48,
+                                            color="black",
+                                        ),
+                                    ],
+                                    justify="space-around",
+                                    mt="md",
+                                    mb="xs",
+                                ),
+                            ),
+                            dbc.CardFooter("% Média de Retrabalho"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=4,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(
+                                            id="indicador-desvpadrao-porcentagem-retrabalho",
+                                            order=2,
+                                        ),
+                                        DashIconify(
+                                            icon="ph:chart-scatter-bold",
+                                            width=48,
+                                            color="black",
+                                        ),
+                                    ],
+                                    justify="space-around",
+                                    mt="md",
+                                    mb="xs",
+                                ),
+                            ),
+                            dbc.CardFooter("Desvio Padrão da % de Retrabalho"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=4,
+                ),
+            ]
+        ),
+        dbc.Row(dmc.Space(h=20)),
+        dbc.Row(
+            [
                 dag.AgGrid(
                     id="tabela-top-mecanicos",
                     columnDefs=tbl_top_mecanicos,
@@ -903,6 +986,54 @@ def atualiza_indicadores(data):
     num_os_ate_corrigir = round(float(df_fixes["NUM_OS_ATE_OS_CORRIGIR"].mean()), 2)
 
     return [f"{total_de_os} OS", f"{total_de_retrabalhos}%", f"{dias_ate_corrigir}", f"{num_os_ate_corrigir} OS"]
+
+
+@callback(
+    [
+        Output("indicador-media-os-colaborador", "children"),
+        Output("indicador-media-porcentagem-retrabalho", "children"),
+        Output("indicador-desvpadrao-porcentagem-retrabalho", "children"),
+    ],
+    Input("store-dados-os", "data"),
+)
+def atualiza_indicadores_mecanico(data):
+    if data["vazio"]:
+        return ["", "", ""]
+
+    #####
+    # Obtém os dados de retrabalho
+    #####
+    df_estatistica = pd.DataFrame(data["df_estatistica"])
+    df_below_threshold = pd.DataFrame(data["df_below_threshold"])
+    df_previous_services = pd.DataFrame(data["df_previous_services"])
+    df_fixes = pd.DataFrame(data["df_fixes"])
+
+    df_os_filtradas = pd.DataFrame(data["df_os_filtradas"])
+
+    # Total de OS
+    df_total_os_por_mecanico = (
+        df_os_filtradas.groupby(["COLABORADOR QUE EXECUTOU O SERVICO"]).size().reset_index(name="TOTAL_OS")
+    )
+
+    # Retrabalhos
+    df_total_retrabalho_por_mecanico = (
+        df_previous_services.groupby("COLABORADOR QUE EXECUTOU O SERVICO").size().reset_index(name="TOTAL_RETRABALHO")
+    )
+
+    # Merge
+    df_total_mecanico = df_total_os_por_mecanico.merge(df_total_retrabalho_por_mecanico, how="left")
+    # Seta 0 para aqueles que não estão no retrabalho
+    df_total_mecanico["TOTAL_RETRABALHO"] = df_total_mecanico["TOTAL_RETRABALHO"].fillna(0)
+
+    # Calcula a percentagem
+    df_total_mecanico["PERC_RETRABALHO"] = 100 * (df_total_mecanico["TOTAL_RETRABALHO"] / df_total_mecanico["TOTAL_OS"])
+
+    # Valores
+    media_os = df_total_mecanico["TOTAL_OS"].mean()
+    media_retrabalho = round(float(df_total_mecanico["PERC_RETRABALHO"].mean()), 2)
+    std_retrabalho = round(float(df_total_mecanico["PERC_RETRABALHO"].std()), 2)
+
+    return [f"{media_os} OS", f"{media_retrabalho}%", f"{std_retrabalho}"]
 
 
 @callback(
