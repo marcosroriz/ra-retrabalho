@@ -111,6 +111,23 @@ dash.register_page(__name__, name="Retrabalho por OS", path="/retrabalho-por-os"
 ##############################################################################
 layout = dbc.Container(
     [
+        # Loading
+        dmc.LoadingOverlay(
+            visible=True,
+            id="loading-overlay",
+            loaderProps={"size": "xl"},
+            overlayProps={
+                "radius": "lg",
+                "blur": 2,
+                "style": {
+                    "top": 0,  # Start from the top of the viewport
+                    "left": 0,  # Start from the left of the viewport
+                    "width": "100vw",  # Cover the entire width of the viewport
+                    "height": "100vh",  # Cover the entire height of the viewport
+                },
+            },
+            zIndex=10,
+        ),
         # Cabeçalho
         html.Hr(),
         dbc.Row(
@@ -715,6 +732,7 @@ def obtem_estatistica_retrabalho(df_os, min_dias):
         Input("input-intervalo-datas", "value"),
         Input("input-dias", "value"),
     ],
+    running=[(Output("loading-overlay", "visible"), True, False)],
 )
 def computa_retrabalho(lista_os, datas, min_dias):
     dados_vazios = {
@@ -1028,7 +1046,7 @@ def atualiza_indicadores_mecanico(data):
     df_total_mecanico["PERC_RETRABALHO"] = 100 * (df_total_mecanico["TOTAL_RETRABALHO"] / df_total_mecanico["TOTAL_OS"])
 
     # Valores
-    media_os = df_total_mecanico["TOTAL_OS"].mean()
+    media_os = round(df_total_mecanico["TOTAL_OS"].mean(), 2)
     media_retrabalho = round(float(df_total_mecanico["PERC_RETRABALHO"].mean()), 2)
     std_retrabalho = round(float(df_total_mecanico["PERC_RETRABALHO"].std()), 2)
 

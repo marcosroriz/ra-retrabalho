@@ -190,7 +190,7 @@ AG_GRID_LOCALE_BR = {
     "true": "Verdadeiro",
     "false": "Falso",
     "invalidDate": "Data Inválida",
-    "invalidNumber": "Número Inválido",
+    # "invalidNumber": "Número Inválido",
     "january": "Janeiro",
     "february": "Fevereiro",
     "march": "Março",
