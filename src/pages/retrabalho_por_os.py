@@ -574,7 +574,6 @@ def obtem_dados_os(lista_os):
     query = f"""
         SELECT * FROM os_dados od
         WHERE "DESCRICAO DO SERVICO" IN ({', '.join([f"'{x}'" for x in lista_os])})
-        AND od."CODIGO DO VEICULO" = '50776' 
     """
     df_os_query = pd.read_sql_query(query, pgEngine).copy()
 
