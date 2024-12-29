@@ -57,12 +57,6 @@ df_mecanicos = pd.read_sql("SELECT * FROM colaboradores_frotas_os", pgEngine)
 # Veículos
 df_veiculos_pg = pd.read_sql("SELECT * FROM veiculos_api", pgEngine)
 
-# Dataframes básicos (veículos)
-df_veiculos = pd.read_sql("SELECT * FROM veiculos", con_banco_assets)
-
-# Dataframes básicos (OS)
-df_os_servico = pd.read_sql_query("SELECT * FROM os_servico", con_banco_assets)
-
 # Definir colunas da tabela de detalhamento
 tbl_top10_os = [
     {"field": "DIA", "headerName:": "DIA"},
