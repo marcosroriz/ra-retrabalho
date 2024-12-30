@@ -1195,7 +1195,7 @@ def update_tabela_veiculos_detalhar(data, vec_detalhar, min_dias):
     # df_detalhar["DIFF_DAYS"] = df_detalhar["DIFF_DAYS"].astype(int)
 
     # Remove campos -1 em DIAS_ATE_OS_CORRIGIR', 'NUM_OS_ATE_OS_CORRIGIR'
-    df_detalhar = df_detalhar.replace("-1", "-")
+    df_detalhar = df_detalhar.replace(-1, "-")
 
     # Encontra o colaborador
     for ix, linha in df_detalhar.iterrows():
