@@ -194,7 +194,7 @@ if __name__ == "__main__":
     APP_PORT = os.getenv("PORT", 10000)
 
     PROFILE = os.getenv("PROFILE", False)
-    PROF_DIR = os.getenv("PROFILE", "profile")
+    PROF_DIR = os.getenv("PROFILE_DIR", "profile")
 
     if PROFILE:
         app.server.config["PROFILE"] = True
