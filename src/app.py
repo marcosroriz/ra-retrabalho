@@ -34,6 +34,9 @@ import pandas as pd
 # Banco de Dados
 from db import PostgresSingleton
 
+# Profiler
+from werkzeug.middleware.profiler import ProfilerMiddleware
+
 ##############################################################################
 # CONFIGURAÇÕES BÁSICAS ######################################################
 ##############################################################################
@@ -187,7 +190,16 @@ auth = dash_auth.BasicAuth(app, dict_users, secret_key=SECRET_KEY)
 # MAIN #######################################################################
 ##############################################################################
 if __name__ == "__main__":
-    APP_DEBUG = bool(os.getenv("APP_DEBUG", "True"))
-    APP_PORT = os.getenv("APP_PORT", 10000)
+    APP_DEBUG = bool(os.getenv("DEBUG", True))
+    APP_PORT = os.getenv("PORT", 10000)
+
+    PROFILE = os.getenv("PROFILE", False)
+    PROF_DIR = os.getenv("PROFILE", "profile")
+
+    if PROFILE:
+        app.server.config["PROFILE"] = True
+        app.server.wsgi_app = ProfilerMiddleware(
+            app.server.wsgi_app, sort_by=["cumtime"], restrictions=[50], stream=None, profile_dir=PROF_DIR
+        )
 
     app.run(debug=APP_DEBUG, port=APP_PORT)
