@@ -3,3 +3,6 @@ src/.env
 
 # Python compiled files
 *.pyc
+
+# Profile
+profile/

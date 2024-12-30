@@ -46,17 +46,13 @@ pgEngine = pgDB.get_engine()
 # Obtem o quantitativo de OS por categoria
 df_os_categorias_pg = pd.read_sql(
     """
-    SELECT "DESCRICAO DO SERVICO", COUNT(*) AS "QUANTIDADE" from os_dados od 
-    GROUP BY "DESCRICAO DO SERVICO"
+    SELECT * FROM os_dados_view_agg_count
     """,
     pgEngine,
 )
 
 # Colaboradores / Mecânicos
 df_mecanicos = pd.read_sql("SELECT * FROM colaboradores_frotas_os", pgEngine)
-
-# Veículos
-df_veiculos_pg = pd.read_sql("SELECT * FROM veiculos_api", pgEngine)
 
 # Definir colunas das tabelas de detalhamento
 
@@ -275,7 +271,6 @@ layout = dbc.Container(
                                                 ),
                                                 dbc.CardFooter("% de Retrabalho"),
                                             ],
-                                            id="card-media-selecionados-telemetria-planilha",
                                             class_name="card-box-shadow",
                                         ),
                                         md=6,
@@ -332,7 +327,6 @@ layout = dbc.Container(
                                                 ),
                                                 dbc.CardFooter("Média de OS até Correção"),
                                             ],
-                                            id="card-media-selecionados-telemetria-planilha",
                                             class_name="card-box-shadow",
                                         ),
                                         md=6,
@@ -592,7 +586,7 @@ def obtem_dados_os(lista_os):
         SELECT * FROM os_dados od
         WHERE "DESCRICAO DO SERVICO" IN ({', '.join([f"'{x}'" for x in lista_os])})
     """
-    df_os_query = pd.read_sql_query(query, pgEngine).copy()
+    df_os_query = pd.read_sql_query(query, pgEngine)
 
     # Tratamento de datas
     df_os_query["DATA INICIO SERVICO"] = pd.to_datetime(df_os_query["DATA INICIO SERVIÇO"])
@@ -607,37 +601,34 @@ def obtem_dados_os(lista_os):
 
 def obtem_estatistica_retrabalho(df_os, min_dias):
     # Ordena os dados
-    df_os_ordenada = df_os.sort_values(by=["CODIGO DO VEICULO", "DATA_INICIO_SERVICO_DT"]).copy()
+    df_os_ordenada = df_os.sort_values(by=["CODIGO DO VEICULO", "DATA_INICIO_SERVICO_DT"]).reset_index(drop=True)
 
     # Adicionando essa coluna para obter dias e num até corrigir
-    df_os_ordenada["DIAS_ATE_OS_CORRIGIR"] = "-1"
-    df_os_ordenada["NUM_OS_ATE_OS_CORRIGIR"] = "-1"
+    df_os_ordenada["DIAS_ATE_OS_CORRIGIR"] = -1
+    df_os_ordenada["NUM_OS_ATE_OS_CORRIGIR"] = -1
+
+    # Diff de days
+    df_os_ordenada["DIFF_DAYS"] = df_os_ordenada.groupby("CODIGO DO VEICULO")["DATA_INICIO_SERVICO_DT"].diff().dt.days.fillna(0)
 
     # Df que agrupa por veículo e categoria
     grouped_df = df_os_ordenada.groupby(["CODIGO DO VEICULO"])
 
-    # Inicializa os dataframes com resultados
-    df_below_threshold = pd.DataFrame()  # Armazena OS abaixo do threshold
-    df_previous_services = pd.DataFrame()  # Para armazenar OS que fazem parte do retrabalho
-    df_fixes = pd.DataFrame()  # Para armazenar OS que encerram o problema
+    # Inicializa as listas/dataframes com resultados
+    below_threshold = [] # Armazena OS abaixo do threshold
+    previous_services = []  # Para armazenar OS que fazem parte do retrabalho
+    fixes = []  # Para armazenar OS que encerram o problema
 
     # Loop em cada veículo
     # Também processamos os veículos de forma individual
     # Podemos ter mais de um problema selecionado, decidimos agrupar para melhorar a análise do usuário
     # Para reverter ao modo antigo, onde a análise é feita por grupo, pode-se fazer o seguinte:
     # for (codigo_veiculo, descricao_servico), group in grouped_df:
-    for (codigo_veiculo), group in grouped_df:
-        # Ordena por dia
-        group_df = group.sort_values(by="DATA_INICIO_SERVICO_DT").copy()
-
-        # Calcula a diff in dias entre serviços consecutivos
-        group_df["DIFF_DAYS"] = group_df["DATA INICIO SERVICO"].diff().dt.days
-
-        # Lida com NaN
-        group_df["DIFF_DAYS"] = group_df["DIFF_DAYS"].fillna(0)
+    for codigo_veiculo, group in grouped_df:
+        # Ordena por dia / não precisa, pois já foi ordenado
+        group_df = group.reset_index(drop=True)
 
         # Copia para evitar warnings
-        df_veiculo_sorted = group_df.copy()
+        df_veiculo_sorted = group_df
 
         # Inicio dos dados adicionais (tempo e dias até correção)
         row_inicio_do_problema = df_veiculo_sorted.iloc[0]
@@ -649,21 +640,22 @@ def obtem_estatistica_retrabalho(df_os, min_dias):
             df_veiculo_sorted["NUM_OS_ATE_OS_CORRIGIR"] = 0
 
             # Adiciona a df_fixes
-            df_fixes = pd.concat([df_fixes, df_veiculo_sorted])
+            fixes.append(row_inicio_do_problema)
             continue
 
         # Faz o loop para calcular serviços consecutivos
-        for i in range(1, len(df_veiculo_sorted)):  # Inicia da segunda linha para ter o dado anterior
+        tam_df = len(df_veiculo_sorted)
+        for i in range(1, tam_df):  # Inicia da segunda linha para ter o dado anterior
             current_row = df_veiculo_sorted.iloc[i].copy()
             prev_row = df_veiculo_sorted.iloc[i - 1].copy()
 
             # Verifica se o DIFF_DAY da linha atual é menor que o intervalo
             if current_row["DIFF_DAYS"] <= min_dias:
                 # Adiciona no df abaixo do intervalo
-                df_below_threshold = pd.concat([df_below_threshold, current_row.to_frame().T])
+                below_threshold.append(current_row)
 
                 # Adicione a linha anteiror ao retrabalho
-                df_previous_services = pd.concat([df_previous_services, prev_row.to_frame().T])
+                previous_services.append(prev_row)
 
                 # Incrementa o Num de OS até corrigir
                 num_os_ate_corrigir = num_os_ate_corrigir + 1
@@ -678,14 +670,14 @@ def obtem_estatistica_retrabalho(df_os, min_dias):
                 prev_row["NUM_OS_ATE_OS_CORRIGIR"] = num_os_ate_corrigir
 
                 # Adiciona a prev_row como correção, uma vez que > min_dias
-                df_fixes = pd.concat([df_fixes, prev_row.to_frame().T])
+                fixes.append(prev_row)
 
                 # Reseta linha atual como inicio do novo problema
                 row_inicio_do_problema = current_row
                 num_os_ate_corrigir = 0
 
             # Verifica se é a última linha
-            if i == len(df_veiculo_sorted) - 1:
+            if i == tam_df - 1:
                 # Calcula a diferença em dias entre row_inicio_do_problema e current_row
                 dia_inicio_problema = row_inicio_do_problema["DATA_INICIO_SERVICO_DT"]
                 dia_inicio_correcao = current_row["DATA_INICIO_SERVICO_DT"]
@@ -696,13 +688,13 @@ def obtem_estatistica_retrabalho(df_os, min_dias):
                 current_row["NUM_OS_ATE_OS_CORRIGIR"] = num_os_ate_corrigir
 
                 # Adiciona ao df_fixes
-                df_fixes = pd.concat([df_fixes, current_row.to_frame().T])
+                fixes.append(current_row)
                 break
 
     # Remove duplicados e reseta os indexes
-    df_below_threshold = df_below_threshold.drop_duplicates().reset_index(drop=True)
-    df_previous_services = df_previous_services.drop_duplicates().reset_index(drop=True)
-    df_fixes = df_fixes.drop_duplicates().reset_index(drop=True)
+    df_below_threshold = pd.DataFrame(below_threshold).drop_duplicates().reset_index(drop=True)
+    df_previous_services = pd.DataFrame(previous_services).drop_duplicates().reset_index(drop=True)
+    df_fixes = pd.DataFrame(fixes).drop_duplicates().reset_index(drop=True)
 
     # Obtem estatisticas de cada DF
     df_os_agg = df_os_ordenada.groupby("DESCRICAO DO SERVICO").size().reset_index(name="TOTAL_DE_OS")
@@ -786,9 +778,6 @@ def plota_grafico_pizza_retrabalho(data):
     # Obtém os dados de retrabalho
     #####
     df_estatistica = pd.DataFrame(data["df_estatistica"])
-    df_below_threshold = pd.DataFrame(data["df_below_threshold"])
-    df_previous_services = pd.DataFrame(data["df_previous_services"])
-    df_fixes = pd.DataFrame(data["df_fixes"])
 
     # Prepara os dados para o gráfico
     labels = ["Retrabalhos", "Correções"]
@@ -800,10 +789,7 @@ def plota_grafico_pizza_retrabalho(data):
         df_pie,
         values="QUANTIDADE",
         names="CATEGORIA",
-        # color_discrete_sequence=tema.PALETA_CORES_QUALITATIVA,
     )
-    # Atualiza as fontes
-    # fig.update_layout(font_family=tema.FONTE_GRAFICOS, font_size=tema.FONTE_TAMANHO)
 
     # Arruma legenda e texto
     fig.update_traces(textinfo="value+percent", sort=False)
@@ -829,10 +815,11 @@ def plota_grafico_cumulativo_retrabalho(data):
     #####
     # Obtém os dados de retrabalho
     #####
-    df_estatistica = pd.DataFrame(data["df_estatistica"])
-    df_below_threshold = pd.DataFrame(data["df_below_threshold"])
-    df_previous_services = pd.DataFrame(data["df_previous_services"])
     df_fixes = pd.DataFrame(data["df_fixes"])
+
+    # Verifica se df não está vazio
+    if df_fixes.empty:
+        return go.Figure()
 
     # Ordenando os dados e criando a coluna cumulativa em termos percentuais
     df_fixes_sorted = df_fixes.sort_values(by="DIAS_ATE_OS_CORRIGIR").copy()
@@ -846,7 +833,6 @@ def plota_grafico_cumulativo_retrabalho(data):
         x="DIAS_ATE_OS_CORRIGIR",
         y="cumulative_percentage",
         labels={"DIAS_ATE_OS_CORRIGIR": "Dias", "cumulative_percentage": "Correções Cumulativas (%)"},
-        # color_discrete_sequence=tema.PALETA_CORES_QUALITATIVA,
     )
 
     fig.update_traces(
@@ -864,12 +850,13 @@ def plota_grafico_cumulativo_retrabalho(data):
 
     # Vamos decidir qual a frequência dos labels
     label_frequency = 1
-    if 5 <= len(df_top) <= 10:
-        label_frequency = 2
-    elif 11 <= len(df_top) <= 30:
+    num_records = len(df_top)
+    if num_records >= 30:
+        label_frequency = math.ceil(num_records / 20) + 1
+    elif num_records >= 10:
         label_frequency = 4
-    elif len(df_top) >= 30:
-        label_frequency = math.ceil(len(df_top) / 20) + 1
+    elif num_records >= 5:
+        label_frequency = 2
 
     # Adiciona o rótulo a cada freq de registros
     for i in range(len(df_top)):
@@ -905,8 +892,6 @@ def plota_grafico_barras_retrabalho_por_modelo(data):
     #####
     # Obtém os dados de retrabalho
     #####
-    df_estatistica = pd.DataFrame(data["df_estatistica"])
-    df_below_threshold = pd.DataFrame(data["df_below_threshold"])
     df_previous_services = pd.DataFrame(data["df_previous_services"])
     df_fixes = pd.DataFrame(data["df_fixes"])
     df_os_filtradas = pd.DataFrame(data["df_os_filtradas"])
@@ -968,9 +953,6 @@ def plota_grafico_barras_retrabalho_por_modelo(data):
     # Exibir os rótulos nas barras
     bar_chart.update_traces(texttemplate="%{text}")
 
-    # Atualiza as fontes
-    # bar_chart.update_layout(font_family=tema.FONTE_GRAFICOS, font_size=tema.FONTE_TAMANHO)
-
     # Retorna o gráfico
     return bar_chart
 
@@ -992,8 +974,6 @@ def atualiza_indicadores(data):
     # Obtém os dados de retrabalho
     #####
     df_estatistica = pd.DataFrame(data["df_estatistica"])
-    df_below_threshold = pd.DataFrame(data["df_below_threshold"])
-    df_previous_services = pd.DataFrame(data["df_previous_services"])
     df_fixes = pd.DataFrame(data["df_fixes"])
 
     # Valores
@@ -1020,11 +1000,7 @@ def atualiza_indicadores_mecanico(data):
     #####
     # Obtém os dados de retrabalho
     #####
-    df_estatistica = pd.DataFrame(data["df_estatistica"])
-    df_below_threshold = pd.DataFrame(data["df_below_threshold"])
     df_previous_services = pd.DataFrame(data["df_previous_services"])
-    df_fixes = pd.DataFrame(data["df_fixes"])
-
     df_os_filtradas = pd.DataFrame(data["df_os_filtradas"])
 
     # Total de OS
@@ -1064,10 +1040,7 @@ def update_tabela_mecanicos_retrabalho(data):
     #####
     # Obtém os dados de retrabalho
     #####
-    df_estatistica = pd.DataFrame(data["df_estatistica"])
-    df_below_threshold = pd.DataFrame(data["df_below_threshold"])
     df_previous_services = pd.DataFrame(data["df_previous_services"])
-    df_fixes = pd.DataFrame(data["df_fixes"])
     df_os_filtradas = pd.DataFrame(data["df_os_filtradas"])
 
     # Total de OS
@@ -1121,9 +1094,6 @@ def update_tabela_os_problematicas(data):
     #####
     # Obtém os dados de retrabalho
     #####
-    df_estatistica = pd.DataFrame(data["df_estatistica"])
-    df_below_threshold = pd.DataFrame(data["df_below_threshold"])
-    df_previous_services = pd.DataFrame(data["df_previous_services"])
     df_fixes = pd.DataFrame(data["df_fixes"])
 
     df_tabela = df_fixes.sort_values(by=["DIAS_ATE_OS_CORRIGIR"], ascending=False).copy()
@@ -1144,9 +1114,6 @@ def update_tabela_veiculos_problematicos(data):
     #####
     # Obtém os dados de retrabalho
     #####
-    df_estatistica = pd.DataFrame(data["df_estatistica"])
-    df_below_threshold = pd.DataFrame(data["df_below_threshold"])
-    df_previous_services = pd.DataFrame(data["df_previous_services"])
     df_fixes = pd.DataFrame(data["df_fixes"])
 
     df_top_veiculos = (
@@ -1169,9 +1136,6 @@ def update_lista_veiculos_detalhar(data):
     #####
     # Obtém os dados de retrabalho
     #####
-    df_estatistica = pd.DataFrame(data["df_estatistica"])
-    df_below_threshold = pd.DataFrame(data["df_below_threshold"])
-    df_previous_services = pd.DataFrame(data["df_previous_services"])
     df_fixes = pd.DataFrame(data["df_fixes"])
 
     # Ordena veículos por dias até corrigir
@@ -1203,11 +1167,8 @@ def update_tabela_veiculos_detalhar(data, vec_detalhar, min_dias):
     #####
     # Obtém os dados de retrabalho
     #####
-    df_estatistica = pd.DataFrame(data["df_estatistica"])
-    df_below_threshold = pd.DataFrame(data["df_below_threshold"])
     df_previous_services = pd.DataFrame(data["df_previous_services"])
     df_fixes = pd.DataFrame(data["df_fixes"])
-    df_os_filtradas = pd.DataFrame(data["df_os_filtradas"])
 
     # Filtra as OS do veículo
     df_previous_services_vec = df_previous_services[df_previous_services["CODIGO DO VEICULO"] == vec_detalhar].copy()
