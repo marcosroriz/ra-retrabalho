@@ -377,7 +377,7 @@ layout = dbc.Container(
                         ],
                         class_name="card-box-shadow",
                     ),
-                    md=4,
+                    md=6,
                 ),
                 dbc.Col(
                     dbc.Card(
@@ -400,38 +400,11 @@ layout = dbc.Container(
                                     mb="xs",
                                 ),
                             ),
-                            dbc.CardFooter("% Média de Retrabalho"),
+                            dbc.CardFooter("Média da % de Retrabalho dos Colaboradores"),
                         ],
                         class_name="card-box-shadow",
                     ),
-                    md=4,
-                ),
-                dbc.Col(
-                    dbc.Card(
-                        [
-                            dbc.CardBody(
-                                dmc.Group(
-                                    [
-                                        dmc.Title(
-                                            id="indicador-desvpadrao-porcentagem-retrabalho",
-                                            order=2,
-                                        ),
-                                        DashIconify(
-                                            icon="ph:chart-scatter-bold",
-                                            width=48,
-                                            color="black",
-                                        ),
-                                    ],
-                                    justify="space-around",
-                                    mt="md",
-                                    mb="xs",
-                                ),
-                            ),
-                            dbc.CardFooter("Desvio Padrão da % de Retrabalho"),
-                        ],
-                        class_name="card-box-shadow",
-                    ),
-                    md=4,
+                    md=6,
                 ),
             ]
         ),
@@ -608,13 +581,15 @@ def obtem_estatistica_retrabalho(df_os, min_dias):
     df_os_ordenada["NUM_OS_ATE_OS_CORRIGIR"] = -1
 
     # Diff de days
-    df_os_ordenada["DIFF_DAYS"] = df_os_ordenada.groupby("CODIGO DO VEICULO")["DATA_INICIO_SERVICO_DT"].diff().dt.days.fillna(0)
+    df_os_ordenada["DIFF_DAYS"] = (
+        df_os_ordenada.groupby("CODIGO DO VEICULO")["DATA_INICIO_SERVICO_DT"].diff().dt.days.fillna(0)
+    )
 
     # Df que agrupa por veículo e categoria
     grouped_df = df_os_ordenada.groupby(["CODIGO DO VEICULO"])
 
     # Inicializa as listas/dataframes com resultados
-    below_threshold = [] # Armazena OS abaixo do threshold
+    below_threshold = []  # Armazena OS abaixo do threshold
     previous_services = []  # Para armazenar OS que fazem parte do retrabalho
     fixes = []  # Para armazenar OS que encerram o problema
 
@@ -631,14 +606,14 @@ def obtem_estatistica_retrabalho(df_os, min_dias):
         df_veiculo_sorted = group_df
 
         # Inicio dos dados adicionais (tempo e dias até correção)
-        row_inicio_do_problema = df_veiculo_sorted.iloc[0]
+        row_inicio_do_problema = df_veiculo_sorted.iloc[0].copy()
         num_os_ate_corrigir = 0
 
         # Se só tem um dado, então não tem retrabalho
         if len(df_veiculo_sorted) == 1:
-            df_veiculo_sorted["DIAS_ATE_OS_CORRIGIR"] = 0
-            df_veiculo_sorted["NUM_OS_ATE_OS_CORRIGIR"] = 0
-
+            row_inicio_do_problema["DIAS_ATE_OS_CORRIGIR"] = 0
+            row_inicio_do_problema["NUM_OS_ATE_OS_CORRIGIR"] = 0
+            
             # Adiciona a df_fixes
             fixes.append(row_inicio_do_problema)
             continue
@@ -698,10 +673,22 @@ def obtem_estatistica_retrabalho(df_os, min_dias):
 
     # Obtem estatisticas de cada DF
     df_os_agg = df_os_ordenada.groupby("DESCRICAO DO SERVICO").size().reset_index(name="TOTAL_DE_OS")
-    df_fixes_agg = df_fixes.groupby("DESCRICAO DO SERVICO").size().reset_index(name="CORRECOES")
-    df_previous_services_agg = (
-        df_previous_services.groupby("DESCRICAO DO SERVICO").size().reset_index(name="RETRABALHOS")
-    )
+
+    # Lida com os casos sem dados
+    df_fixes_agg = df_os_agg.copy().rename(columns={"TOTAL_DE_OS": "CORRECOES"})
+    df_previous_services_agg = df_os_agg.copy().rename(columns={"TOTAL_DE_OS": "RETRABALHOS"})
+
+    if df_previous_services.empty:
+        df_previous_services_agg["RETRABALHOS"] = 0
+    else:
+        df_previous_services_agg = (
+            df_previous_services.groupby("DESCRICAO DO SERVICO").size().reset_index(name="RETRABALHOS")
+        )
+
+    if df_fixes.empty:
+        df_fixes_agg["CORRECOES"] = 0
+    else:
+        df_fixes_agg = df_fixes.groupby("DESCRICAO DO SERVICO").size().reset_index(name="CORRECOES")
 
     # Junta eles
     df_merge = pd.merge(df_os_agg, df_previous_services_agg, on="DESCRICAO DO SERVICO", how="left")
@@ -897,11 +884,21 @@ def plota_grafico_barras_retrabalho_por_modelo(data):
     df_os_filtradas = pd.DataFrame(data["df_os_filtradas"])
 
     # Agrupa por modelo
-    df_fixes_agg_por_modelo = df_fixes.groupby(["DESCRICAO DO MODELO"]).size().reset_index(name="CORRECOES")
-    df_previous_agg_por_modelo = (
-        df_previous_services.groupby(["DESCRICAO DO MODELO"]).size().reset_index(name="RETRABALHOS")
-    )
     df_os_agg_por_modelo = df_os_filtradas.groupby(["DESCRICAO DO MODELO"]).size().reset_index(name="TOTAL_DE_OS")
+    df_fixes_agg_por_modelo = df_os_agg_por_modelo.copy().rename(columns={"TOTAL_DE_OS": "CORRECOES"})
+    df_previous_agg_por_modelo = df_os_agg_por_modelo.copy().rename(columns={"TOTAL_DE_OS": "RETRABALHOS"})
+
+    if df_previous_services.empty:
+        df_previous_agg_por_modelo["RETRABALHOS"] = 0
+    else:
+        df_previous_agg_por_modelo = (
+            df_previous_services.groupby(["DESCRICAO DO MODELO"]).size().reset_index(name="RETRABALHOS")
+        )    
+
+    if df_fixes.empty:
+        df_fixes_agg_por_modelo["CORRECOES"] = 0
+    else:
+        df_fixes_agg_por_modelo = df_fixes.groupby(["DESCRICAO DO MODELO"]).size().reset_index(name="CORRECOES")
 
     # Faz o merge
     df_merge_modelo = pd.merge(
@@ -953,6 +950,14 @@ def plota_grafico_barras_retrabalho_por_modelo(data):
     # Exibir os rótulos nas barras
     bar_chart.update_traces(texttemplate="%{text}")
 
+    # Ajustar a margem inferior para evitar corte de rótulos
+    bar_chart.update_layout(
+        margin=dict(
+            b=200
+        ),
+        height=600
+    )
+
     # Retorna o gráfico
     return bar_chart
 
@@ -989,13 +994,12 @@ def atualiza_indicadores(data):
     [
         Output("indicador-media-os-colaborador", "children"),
         Output("indicador-media-porcentagem-retrabalho", "children"),
-        Output("indicador-desvpadrao-porcentagem-retrabalho", "children"),
     ],
     Input("store-dados-os", "data"),
 )
 def atualiza_indicadores_mecanico(data):
     if data["vazio"]:
-        return ["", "", ""]
+        return ["", ""]
 
     #####
     # Obtém os dados de retrabalho
@@ -1009,9 +1013,15 @@ def atualiza_indicadores_mecanico(data):
     )
 
     # Retrabalhos
-    df_total_retrabalho_por_mecanico = (
-        df_previous_services.groupby("COLABORADOR QUE EXECUTOU O SERVICO").size().reset_index(name="TOTAL_RETRABALHO")
-    )
+    # Lida com os casos sem dados
+    df_total_retrabalho_por_mecanico = df_total_os_por_mecanico.copy().rename(columns={"TOTAL_OS": "TOTAL_RETRABALHO"})
+
+    if df_previous_services.empty:
+        df_total_retrabalho_por_mecanico["TOTAL_RETRABALHO"] = 0
+    else: 
+        df_total_retrabalho_por_mecanico = (
+            df_previous_services.groupby("COLABORADOR QUE EXECUTOU O SERVICO").size().reset_index(name="TOTAL_RETRABALHO")
+        )
 
     # Merge
     df_total_mecanico = df_total_os_por_mecanico.merge(df_total_retrabalho_por_mecanico, how="left")
@@ -1024,9 +1034,8 @@ def atualiza_indicadores_mecanico(data):
     # Valores
     media_os = round(df_total_mecanico["TOTAL_OS"].mean(), 2)
     media_retrabalho = round(float(df_total_mecanico["PERC_RETRABALHO"].mean()), 2)
-    std_retrabalho = round(float(df_total_mecanico["PERC_RETRABALHO"].std()), 2)
 
-    return [f"{media_os} OS", f"{media_retrabalho}%", f"{std_retrabalho}"]
+    return [f"{media_os} OS", f"{media_retrabalho}%"]
 
 
 @callback(
@@ -1049,9 +1058,15 @@ def update_tabela_mecanicos_retrabalho(data):
     )
 
     # Retrabalhos
-    df_total_retrabalho_por_mecanico = (
-        df_previous_services.groupby("COLABORADOR QUE EXECUTOU O SERVICO").size().reset_index(name="TOTAL_RETRABALHO")
-    )
+    # Lida com os casos sem dados
+    df_total_retrabalho_por_mecanico = df_total_os_por_mecanico.copy().rename(columns={"TOTAL_OS": "TOTAL_RETRABALHO"})
+
+    if df_previous_services.empty:
+        df_total_retrabalho_por_mecanico["TOTAL_RETRABALHO"] = 0
+    else: 
+        df_total_retrabalho_por_mecanico = (
+            df_previous_services.groupby("COLABORADOR QUE EXECUTOU O SERVICO").size().reset_index(name="TOTAL_RETRABALHO")
+        )
 
     # Merge
     df_total_mecanico = df_total_os_por_mecanico.merge(df_total_retrabalho_por_mecanico, how="left")
@@ -1171,17 +1186,21 @@ def update_tabela_veiculos_detalhar(data, vec_detalhar, min_dias):
     df_fixes = pd.DataFrame(data["df_fixes"])
 
     # Filtra as OS do veículo
-    df_previous_services_vec = df_previous_services[df_previous_services["CODIGO DO VEICULO"] == vec_detalhar].copy()
-    df_previous_services_vec["CLASSIFICACAO"] = "Retrabalho"
-    df_previous_services_vec["CLASSIFICACAO_EMOJI"] = "❌"
+    df_previous_services_vec = pd.DataFrame()
+    if not df_previous_services.empty:
+        df_previous_services_vec = df_previous_services[df_previous_services["CODIGO DO VEICULO"] == vec_detalhar].copy()
+        df_previous_services_vec["CLASSIFICACAO"] = "Retrabalho"
+        df_previous_services_vec["CLASSIFICACAO_EMOJI"] = "❌"
 
-    df_fixes_vec = df_fixes[df_fixes["CODIGO DO VEICULO"] == vec_detalhar].copy()
-    df_fixes_vec["CLASSIFICACAO"] = "Correção"
-    df_fixes_vec["CLASSIFICACAO_EMOJI"] = "✅"
+    df_fixes_vec = pd.DataFrame()
+    if not df_fixes.empty:
+        df_fixes_vec = df_fixes[df_fixes["CODIGO DO VEICULO"] == vec_detalhar].copy()
+        df_fixes_vec["CLASSIFICACAO"] = "Correção"
+        df_fixes_vec["CLASSIFICACAO_EMOJI"] = "✅"
 
     # Junta os dados
     df_detalhar = pd.concat([df_previous_services_vec, df_fixes_vec])
-    df_detalhar = df_detalhar.sort_values(by=["CODIGO DO VEICULO", "DESCRICAO DO SERVICO", "DATA_INICIO_SERVICO_DT"])
+    df_detalhar = df_detalhar.sort_values(by=["CODIGO DO VEICULO", "DATA_INICIO_SERVICO_DT"])
 
     # Formata datas
     df_detalhar["DIA_INICIO"] = pd.to_datetime(df_detalhar["DATA INICIO SERVICO"]).dt.strftime("%d/%m/%Y %H:%M")
