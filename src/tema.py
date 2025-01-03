@@ -18,30 +18,20 @@ ICONE_VIAGEM = "bx:trip"
 ICONE_DUVIDA = "mingcute:question-fill"
 ICONE_ERRO = "material-symbols:error"
 
-# Cores do tema Set2
-# https://loading.io/color/feature/Pastel2-8/
-# https://loading.io/color/feature/Set2-8/
-# https://loading.io/color/feature/Dark2-8/
+# Fontes do Tema
 FONTE_GRAFICOS = "Source Sans Pro"
 FONTE_TAMANHO = 14
-PALETA_CORES_QUALITATIVA = px.colors.qualitative.D3
-CORES_GRAFICO_PIZZA = px.colors.qualitative.D3
-PASTEL2_COLORS = ["#b3e2cd", "#fdcdac", "#cbd5e8", "#f4cae4", "#e6f5c9", "#fff2ae", "#f1e2cc", "#cccccc"]
-SET2_COLORS = ["#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#ffd92f", "#e5c494", "#b3b3b3"]
-DARK2_COLORS = ["#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666"]
 
-COR_SUCESSO = PASTEL2_COLORS[4]
-COR_SUCESSO_1 = SET2_COLORS[4]
-COR_SUCESSO_2 = DARK2_COLORS[4]
+# Paleta de Cores: D3
+# https://plotly.com/python/discrete-color/
+# Tema alternativo: Pastel2 -- https://loading.io/color/feature/Pastel2-8/
 
-COR_ERRO = PASTEL2_COLORS[1]
-COR_ERRO_1 = SET2_COLORS[1]
-COR_ERRO_2 = DARK2_COLORS[1]
+PALETA_CORES = px.colors.qualitative.D3
+PALETA_CORES_DISCRETA = px.colors.qualitative.D3
+PALETA_CORES_SEQUENCIAL = px.colors.sequential.Plasma_r
 
-COR_BASELINE = PASTEL2_COLORS[2]
-COR_BASELINE_1 = SET2_COLORS[2]
-COR_BASELINE_2 = DARK2_COLORS[2]
-
-COR_ALERTA = PASTEL2_COLORS[5]
-COR_ALERTA_1 = SET2_COLORS[5]
-COR_ALERTA_2 = DARK2_COLORS[5]
+# Cores Notáveis
+COR_PADRAO = px.colors.qualitative.D3[0]
+COR_SUCESSO = px.colors.qualitative.D3[2]
+COR_ERRO = px.colors.qualitative.D3[3]
+COR_ALERTA = px.colors.qualitative.D3[1]

@@ -50,7 +50,7 @@ _dash_renderer._set_react_version("18.2.0")
 # Configurações de cores e temas
 TEMA = dbc.themes.LUMEN
 pio.templates.default = "plotly"
-pio.templates["plotly"]["layout"]["colorway"] = tema.PALETA_CORES_QUALITATIVA
+pio.templates["plotly"]["layout"]["colorway"] = tema.PALETA_CORES
 
 # Stylesheets do Mantine + nosso tema
 stylesheets = [
@@ -77,7 +77,7 @@ pio.templates["tema"] = go.layout.Template(
             family=tema.FONTE_GRAFICOS,
             size=tema.FONTE_TAMANHO,  # Default font size
         ),
-        colorway=tema.PALETA_CORES_QUALITATIVA,
+        colorway=tema.PALETA_CORES
     )
 )
 

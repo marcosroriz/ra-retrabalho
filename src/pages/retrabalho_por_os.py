@@ -802,13 +802,24 @@ def plota_grafico_pizza_retrabalho(data):
         df_estatistica["CORRECOES_TARDIA"].sum(),
         df_estatistica["RETRABALHOS"].sum(),
     ]
+
+    # Gera o DF
     df_pie = pd.DataFrame({"CATEGORIA": labels, "QUANTIDADE": values})
+
+    # Gera as Cores
+    color_map = {
+        "Correções de Primeira": tema.COR_SUCESSO,
+        "Correções Tardias": tema.COR_ALERTA,
+        "Retrabalhos": tema.COR_ERRO,
+    }
 
     # Gera o gráfico
     fig = px.pie(
         df_pie,
         values="QUANTIDADE",
         names="CATEGORIA",
+        color="CATEGORIA",
+        color_discrete_map=color_map,
     )
 
     # Arruma legenda e texto
@@ -890,7 +901,7 @@ def plota_grafico_cumulativo_retrabalho(data):
         text=df_top["label"],
         textposition="middle right",
         showlegend=False,
-        marker=dict(color=tema.PALETA_CORES_QUALITATIVA[0]),
+        marker=dict(color=tema.COR_PADRAO),
     )
 
     fig.update_layout(
@@ -916,22 +927,45 @@ def plota_grafico_barras_retrabalho_por_modelo(data):
     df_fixes = pd.DataFrame(data["df_fixes"])
     df_os_filtradas = pd.DataFrame(data["df_os_filtradas"])
 
-    # Agrupa por modelo
+    # Agrupa por modelo, vamos criar os dataframes para cada modelo
     df_os_agg_por_modelo = df_os_filtradas.groupby(["DESCRICAO DO MODELO"]).size().reset_index(name="TOTAL_DE_OS")
-    df_fixes_agg_por_modelo = df_os_agg_por_modelo.copy().rename(columns={"TOTAL_DE_OS": "CORRECOES"})
-    df_previous_agg_por_modelo = df_os_agg_por_modelo.copy().rename(columns={"TOTAL_DE_OS": "RETRABALHOS"})
 
-    if df_previous_services.empty:
-        df_previous_agg_por_modelo["RETRABALHOS"] = 0
-    else:
+    # Primeiro, cria os dataframes para cada modelo com valores numéricos zerados
+    df_previous_agg_por_modelo = df_os_agg_por_modelo.copy()
+    df_previous_agg_por_modelo["RETRABALHOS"] = 0
+
+    df_fixes_agg_por_modelo = df_os_agg_por_modelo.copy()
+    df_fixes_agg_por_modelo["CORRECOES"] = 0
+    df_fixes_agg_por_modelo["CORRECOES_TARDIA"] = 0
+    df_fixes_agg_por_modelo["CORRECOES_DE_PRIMEIRA"] = 0
+
+    # Agora, preenche os valores numéricos
+    if not df_previous_services.empty:
         df_previous_agg_por_modelo = (
             df_previous_services.groupby(["DESCRICAO DO MODELO"]).size().reset_index(name="RETRABALHOS")
         )
 
-    if df_fixes.empty:
-        df_fixes_agg_por_modelo["CORRECOES"] = 0
-    else:
+    if not df_fixes.empty:
         df_fixes_agg_por_modelo = df_fixes.groupby(["DESCRICAO DO MODELO"]).size().reset_index(name="CORRECOES")
+        df_agg_corr_primeira = (
+            df_fixes[df_fixes["CORRIGIDA_DE_PRIMEIRA"]]
+            .groupby(["DESCRICAO DO MODELO"])
+            .size()
+            .reset_index(name="CORRECOES_DE_PRIMEIRA")
+        )
+        df_agg_corr_tardia = (
+            df_fixes[~df_fixes["CORRIGIDA_DE_PRIMEIRA"]]
+            .groupby(["DESCRICAO DO MODELO"])
+            .size()
+            .reset_index(name="CORRECOES_TARDIA")
+        )
+        df_fixes_agg_por_modelo = pd.merge(
+            df_fixes_agg_por_modelo, df_agg_corr_primeira, on=["DESCRICAO DO MODELO"], how="left"
+        )
+        df_fixes_agg_por_modelo = pd.merge(
+            df_fixes_agg_por_modelo, df_agg_corr_tardia, on=["DESCRICAO DO MODELO"], how="left"
+        )
+        df_fixes_agg_por_modelo = df_fixes_agg_por_modelo.fillna(0)
 
     # Faz o merge
     df_merge_modelo = pd.merge(
@@ -947,14 +981,20 @@ def plota_grafico_barras_retrabalho_por_modelo(data):
     # Computa as percentagens
     df_merge_modelo["PERC_RETRABALHO"] = 100 * (df_merge_modelo["RETRABALHOS"] / df_merge_modelo["TOTAL_DE_OS"])
     df_merge_modelo["PERC_CORRECOES"] = 100 * (df_merge_modelo["CORRECOES"] / df_merge_modelo["TOTAL_DE_OS"])
+    df_merge_modelo["PERC_CORRECOES_TARDIA"] = 100 * (
+        df_merge_modelo["CORRECOES_TARDIA"] / df_merge_modelo["TOTAL_DE_OS"]
+    )
+    df_merge_modelo["PERC_CORRECOES_DE_PRIMEIRA"] = 100 * (
+        df_merge_modelo["CORRECOES_DE_PRIMEIRA"] / df_merge_modelo["TOTAL_DE_OS"]
+    )
 
     # Gera o gráfico
     bar_chart = px.bar(
         df_merge_modelo,
         x="DESCRICAO DO MODELO",
-        y=["PERC_RETRABALHO", "PERC_CORRECOES"],
+        y=["PERC_CORRECOES_DE_PRIMEIRA", "PERC_CORRECOES_TARDIA", "PERC_RETRABALHO"],
         barmode="stack",
-        # color_discrete_sequence=tema.PALETA_CORES_QUALITATIVA,
+        color_discrete_sequence=[tema.COR_SUCESSO, tema.COR_ALERTA, tema.COR_ERRO],
         labels={
             "value": "Percentagem",
             "DESCRICAO DO SERVICO": "Ordem de Serviço",
@@ -962,22 +1002,35 @@ def plota_grafico_barras_retrabalho_por_modelo(data):
         },
     )
 
-    # Atualizando os valores de rótulo para PERC_RETRABALHO (percentual e valor absoluto de retrabalhos)
+    # Atualizando os valores de rótulo para PERC_CORRECOES_DE_PRIMEIRA (percentual e valor absoluto de correções de primeira)
     bar_chart.update_traces(
         text=[
             f"{retrabalho} ({perc_retrab:.2f}%)"
-            for retrabalho, perc_retrab in zip(df_merge_modelo["RETRABALHOS"], df_merge_modelo["PERC_RETRABALHO"])
+            for retrabalho, perc_retrab in zip(
+                df_merge_modelo["CORRECOES_DE_PRIMEIRA"], df_merge_modelo["PERC_CORRECOES_DE_PRIMEIRA"]
+            )
         ],
-        selector=dict(name="PERC_RETRABALHO"),
+        selector=dict(name="PERC_CORRECOES_DE_PRIMEIRA"),
     )
 
-    # Atualizando os valores de rótulo para PERC_CORRECOES (percentual e valor absoluto de correções)
+    # Atualizando os valores de rótulo para PERC_CORRECOES_TARDIA (percentual e valor absoluto de correções tardias)
     bar_chart.update_traces(
         text=[
             f"{correcoes} ({perc_correcoes:.2f}%)"
-            for correcoes, perc_correcoes in zip(df_merge_modelo["CORRECOES"], df_merge_modelo["PERC_CORRECOES"])
+            for correcoes, perc_correcoes in zip(
+                df_merge_modelo["CORRECOES_TARDIA"], df_merge_modelo["PERC_CORRECOES_TARDIA"]
+            )
         ],
-        selector=dict(name="PERC_CORRECOES"),
+        selector=dict(name="PERC_CORRECOES_TARDIA"),
+    )
+
+    # Atualizando os valores de rótulo para PERC_RETRABALHO (percentual e valor absoluto de retrabalhos)
+    bar_chart.update_traces(
+        text=[
+            f"{correcoes} ({perc_correcoes:.2f}%)"
+            for correcoes, perc_correcoes in zip(df_merge_modelo["RETRABALHOS"], df_merge_modelo["PERC_RETRABALHO"])
+        ],
+        selector=dict(name="PERC_RETRABALHO"),
     )
 
     # Exibir os rótulos nas barras
