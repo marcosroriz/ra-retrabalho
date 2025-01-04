@@ -213,132 +213,177 @@ layout = dbc.Container(
         dbc.Row(dmc.Space(h=20)),
         # Graficos gerais
         html.Hr(),
+        # Indicadores
         dbc.Row(
             [
-                # Gráfico de Pizza
-                dbc.Col(dbc.Row([html.H4("Retrabalho x Correções"), dcc.Graph(id="graph-retrabalho-correcoes")]), md=6),
-                # Indicadores
-                dbc.Col(
-                    dbc.Row(
-                        [
-                            html.H4("Indicadores"),
-                            dbc.Row(
+                html.H4("Indicadores"),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            dbc.Card(
                                 [
-                                    dbc.Col(
-                                        dbc.Card(
+                                    dbc.CardBody(
+                                        dmc.Group(
                                             [
-                                                dbc.CardBody(
-                                                    dmc.Group(
-                                                        [
-                                                            dmc.Title(id="indicador-total-os", order=2),
-                                                            DashIconify(
-                                                                icon="material-symbols:order-approve-outline",
-                                                                width=48,
-                                                                color="black",
-                                                            ),
-                                                        ],
-                                                        justify="space-around",
-                                                        mt="md",
-                                                        mb="xs",
-                                                    ),
+                                                dmc.Title(id="indicador-total-problemas", order=2),
+                                                DashIconify(
+                                                    icon="mdi:bomb",
+                                                    width=48,
+                                                    color="black",
                                                 ),
-                                                dbc.CardFooter("Total de OS"),
                                             ],
-                                            class_name="card-box-shadow",
+                                            justify="space-around",
+                                            mt="md",
+                                            mb="xs",
                                         ),
-                                        md=6,
                                     ),
-                                    dbc.Col(
-                                        dbc.Card(
-                                            [
-                                                dbc.CardBody(
-                                                    dmc.Group(
-                                                        [
-                                                            dmc.Title(
-                                                                id="indicador-porcentagem-retrabalho",
-                                                                order=2,
-                                                            ),
-                                                            DashIconify(
-                                                                icon="codicon:error",
-                                                                width=48,
-                                                                color="black",
-                                                            ),
-                                                        ],
-                                                        justify="space-around",
-                                                        mt="md",
-                                                        mb="xs",
-                                                    ),
-                                                ),
-                                                dbc.CardFooter("% de Retrabalho"),
-                                            ],
-                                            class_name="card-box-shadow",
-                                        ),
-                                        md=6,
-                                    ),
-                                ]
+                                    dbc.CardFooter("Total de problemas"),
+                                ],
+                                class_name="card-box-shadow",
                             ),
-                            dbc.Row(dmc.Space(h=20)),
-                            dbc.Row(
+                            md=4,
+                        ),
+                        dbc.Col(
+                            dbc.Card(
                                 [
-                                    dbc.Col(
-                                        dbc.Card(
+                                    dbc.CardBody(
+                                        dmc.Group(
                                             [
-                                                dbc.CardBody(
-                                                    dmc.Group(
-                                                        [
-                                                            dmc.Title(id="indicador-num-medio-dias-correcao", order=2),
-                                                            DashIconify(
-                                                                icon="lucide:calendar-days",
-                                                                width=48,
-                                                                color="black",
-                                                            ),
-                                                        ],
-                                                        justify="space-around",
-                                                        mt="md",
-                                                        mb="xs",
-                                                    ),
+                                                dmc.Title(
+                                                    id="indicador-total-os",
+                                                    order=2,
                                                 ),
-                                                dbc.CardFooter("Média de Dias até Correção"),
-                                            ],
-                                            class_name="card-box-shadow",
-                                        ),
-                                        md=6,
-                                    ),
-                                    dbc.Col(
-                                        dbc.Card(
-                                            [
-                                                dbc.CardBody(
-                                                    dmc.Group(
-                                                        [
-                                                            dmc.Title(
-                                                                id="indicador-num-medio-de-os-ate-correcao",
-                                                                order=2,
-                                                            ),
-                                                            DashIconify(
-                                                                icon="gg:reorder",
-                                                                width=48,
-                                                                color="black",
-                                                            ),
-                                                        ],
-                                                        justify="space-around",
-                                                        mt="md",
-                                                        mb="xs",
-                                                    ),
+                                                DashIconify(
+                                                    icon="material-symbols:order-play-outline",
+                                                    width=48,
+                                                    color="black",
                                                 ),
-                                                dbc.CardFooter("Média de OS até Correção"),
                                             ],
-                                            class_name="card-box-shadow",
+                                            justify="space-around",
+                                            mt="md",
+                                            mb="xs",
                                         ),
-                                        md=6,
                                     ),
-                                ]
+                                    dbc.CardFooter("Total de OS"),
+                                ],
+                                class_name="card-box-shadow",
                             ),
-                        ]
-                    ),
-                    md=6,
+                            md=4,
+                        ),
+                        dbc.Col(
+                            dbc.Card(
+                                [
+                                    dbc.CardBody(
+                                        dmc.Group(
+                                            [
+                                                dmc.Title(id="indicador-relacao-problema-os", order=2),
+                                                DashIconify(
+                                                    icon="icon-park-solid:division",
+                                                    width=48,
+                                                    color="black",
+                                                ),
+                                            ],
+                                            justify="space-around",
+                                            mt="md",
+                                            mb="xs",
+                                        ),
+                                    ),
+                                    dbc.CardFooter("Relação OS/Problema"),
+                                ],
+                                class_name="card-box-shadow",
+                            ),
+                            md=4,
+                        ),
+                    ]
+                ),
+                dbc.Row(dmc.Space(h=20)),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            dbc.Card(
+                                [
+                                    dbc.CardBody(
+                                        dmc.Group(
+                                            [
+                                                dmc.Title(
+                                                    id="indicador-porcentagem-retrabalho",
+                                                    order=2,
+                                                ),
+                                                DashIconify(
+                                                    icon="pepicons-pop:rewind-time",
+                                                    width=48,
+                                                    color="black",
+                                                ),
+                                            ],
+                                            justify="space-around",
+                                            mt="md",
+                                            mb="xs",
+                                        ),
+                                    ),
+                                    dbc.CardFooter("% de OS que são retrabalho"),
+                                ],
+                                class_name="card-box-shadow",
+                            ),
+                            md=4,
+                        ),
+                        dbc.Col(
+                            dbc.Card(
+                                [
+                                    dbc.CardBody(
+                                        dmc.Group(
+                                            [
+                                                dmc.Title(id="indicador-num-medio-dias-correcao", order=2),
+                                                DashIconify(
+                                                    icon="lucide:calendar-days",
+                                                    width=48,
+                                                    color="black",
+                                                ),
+                                            ],
+                                            justify="space-around",
+                                            mt="md",
+                                            mb="xs",
+                                        ),
+                                    ),
+                                    dbc.CardFooter("Média de dias até correção"),
+                                ],
+                                class_name="card-box-shadow",
+                            ),
+                            md=4,
+                        ),
+                        dbc.Col(
+                            dbc.Card(
+                                [
+                                    dbc.CardBody(
+                                        dmc.Group(
+                                            [
+                                                dmc.Title(
+                                                    id="indicador-num-medio-de-os-ate-correcao",
+                                                    order=2,
+                                                ),
+                                                DashIconify(
+                                                    icon="gg:reorder",
+                                                    width=48,
+                                                    color="black",
+                                                ),
+                                            ],
+                                            justify="space-around",
+                                            mt="md",
+                                            mb="xs",
+                                        ),
+                                    ),
+                                    dbc.CardFooter("Média de OS até correção"),
+                                ],
+                                class_name="card-box-shadow",
+                            ),
+                            md=4,
+                        ),
+                    ]
                 ),
             ]
         ),
+        dbc.Row(dmc.Space(h=40)),
+        # Gráfico de Pizza com a relação entre Retrabalho e Correções
+        dbc.Row([html.H4("Total de OS: Correções x Retrabalho"), dcc.Graph(id="graph-retrabalho-correcoes")]),
         # dbc.Row(dmc.Space(h=20)),
         dbc.Row([html.H4("Grafículo Cumulativo Dias para Correção"), dcc.Graph(id="graph-retrabalho-cumulativo")]),
         # dbc.Row(dmc.Space(h=20)),
@@ -401,6 +446,62 @@ layout = dbc.Container(
                                 ),
                             ),
                             dbc.CardFooter("Média da % de Retrabalho dos Colaboradores"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=6,
+                ),
+            ]
+        ),
+        dbc.Row(dmc.Space(h=20)),
+        dbc.Row(
+            [
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(id="indicador-media-correcoes-primeira-colaborador", order=2),
+                                        DashIconify(
+                                            icon="gravity-ui:target-dart",
+                                            width=48,
+                                            color="black",
+                                        ),
+                                    ],
+                                    justify="space-around",
+                                    mt="md",
+                                    mb="xs",
+                                ),
+                            ),
+                            dbc.CardFooter("Média da % de Correções de Primeira dos Colaboradores"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=6,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(
+                                            id="indicador-media-correcoes-tardias-colaborador",
+                                            order=2,
+                                        ),
+                                        DashIconify(
+                                            icon="game-icons:multiple-targets",
+                                            width=48,
+                                            color="black",
+                                        ),
+                                    ],
+                                    justify="space-around",
+                                    mt="md",
+                                    mb="xs",
+                                ),
+                            ),
+                            dbc.CardFooter("Média da % de Correções Tardias dos Colaboradores"),
                         ],
                         class_name="card-box-shadow",
                     ),
@@ -558,7 +659,15 @@ def obtem_dados_os(lista_os):
     query = f"""
         SELECT * FROM os_dados od
         -- WHERE "DESCRICAO DO SERVICO" IN ({', '.join([f"'{x}'" for x in lista_os])})
-        where "DESCRICAO DO SERVICO" = 'Motor cortando alimentação' and "CODIGO DO VEICULO" ='50177'
+        -- where "DESCRICAO DO SERVICO" = 'Motor cortando alimentação' and "CODIGO DO VEICULO" ='50177'
+        where 
+(
+"DESCRICAO DO SERVICO" = 'Motor cortando alimentação'
+or
+"DESCRICAO DO SERVICO" = 'Motor sem força'
+)
+and 
+"CODIGO DO VEICULO" ='50733'
     """
     df_os_query = pd.read_sql_query(query, pgEngine)
 
@@ -737,6 +846,106 @@ def obtem_estatistica_retrabalho(df_os, min_dias):
     return df_merge, df_previous_services, df_fixes
 
 
+def obtem_estatistica_colaboradores(df_fixes, df_previous_services):
+    colunas_interesse = [
+        "NUMERO DA OS",
+        "DESCRICAO DO SERVICO",
+        "DATA_INICIO_SERVICO_DT",
+        "COLABORADOR QUE EXECUTOU O SERVICO",
+        "GRUPO_PROBLEMA",
+        "CORRIGIDA_DE_PRIMEIRA",
+    ]
+    df_os = pd.concat([df_fixes[colunas_interesse], df_previous_services[colunas_interesse]])
+
+    # Total de Problemas
+    total_problemas = df_os["GRUPO_PROBLEMA"].max() + 1
+
+    # Total de OS por mecânico
+    df_agg_mecanicos_total = df_os.groupby("COLABORADOR QUE EXECUTOU O SERVICO").size().reset_index(name="TOTAL_OS")
+
+    # Participação dos mecânicos em problemas
+    df_agg_mecanicos_problemas = (
+        df_os.groupby("COLABORADOR QUE EXECUTOU O SERVICO")["GRUPO_PROBLEMA"]
+        .nunique()
+        .reset_index(name="PROBLEMAS_QUE_PARTICIPOU")
+    )
+    # Faz merge com total
+    df_agg_mecanicos_total = df_agg_mecanicos_total.merge(
+        df_agg_mecanicos_problemas, on="COLABORADOR QUE EXECUTOU O SERVICO", how="left"
+    ).fillna(0)
+
+    # Computa RETRABALHOS
+    df_agg_mecanicos_retrabalhos = (
+        df_previous_services.groupby("COLABORADOR QUE EXECUTOU O SERVICO").size().reset_index(name="TOTAL_RETRABALHOS")
+    )
+    df_agg_mecanicos_retrabalhos["TOTAL_RETRABALHOS"] = df_agg_mecanicos_retrabalhos["TOTAL_RETRABALHOS"].astype(int)
+    # Faz merge com total
+    df_agg_mecanicos_total = df_agg_mecanicos_total.merge(
+        df_agg_mecanicos_retrabalhos, on="COLABORADOR QUE EXECUTOU O SERVICO", how="left"
+    ).fillna(0)
+
+    # Computa Correções
+    df_agg_mecanicos_correcoes = (
+        df_fixes.groupby("COLABORADOR QUE EXECUTOU O SERVICO").size().reset_index(name="TOTAL_CORRECOES")
+    ).fillna(0)
+    # Merge
+    df_agg_mecanicos_total = df_agg_mecanicos_total.merge(
+        df_agg_mecanicos_correcoes, on="COLABORADOR QUE EXECUTOU O SERVICO", how="left"
+    ).fillna(0)
+
+    # Computa Correções de Primeira
+    df_agg_mecanicos_correcoes_primeira = (
+        df_fixes.groupby("COLABORADOR QUE EXECUTOU O SERVICO")["CORRIGIDA_DE_PRIMEIRA"]
+        .sum()
+        .reset_index(name="TOTAL_CORRECOES_PRIMEIRA")
+    )
+    # Merge
+    df_agg_mecanicos_total = df_agg_mecanicos_total.merge(
+        df_agg_mecanicos_correcoes_primeira, on="COLABORADOR QUE EXECUTOU O SERVICO", how="left"
+    ).fillna(0)
+
+    # Computa Correções Tardia
+    df_agg_mecanicos_total["TOTAL_CORRECOES_TARDIAS"] = (
+        df_agg_mecanicos_total["TOTAL_CORRECOES"] - df_agg_mecanicos_total["TOTAL_CORRECOES_PRIMEIRA"]
+    )
+
+    # Percentagens
+    df_agg_mecanicos_total["PERC_PROBLEMAS"] = 100 * (
+        df_agg_mecanicos_total["PROBLEMAS_QUE_PARTICIPOU"] / total_problemas
+    )
+    df_agg_mecanicos_total["PERC_RETRABALHOS"] = 100 * (
+        df_agg_mecanicos_total["TOTAL_RETRABALHOS"] / df_agg_mecanicos_total["TOTAL_OS"]
+    )
+    df_agg_mecanicos_total["PERC_CORRECOES"] = 100 * (
+        df_agg_mecanicos_total["TOTAL_CORRECOES"] / df_agg_mecanicos_total["TOTAL_OS"]
+    )
+    df_agg_mecanicos_total["PERC_CORRECOES_PRIMEIRA"] = 100 * (
+        df_agg_mecanicos_total["TOTAL_CORRECOES_PRIMEIRA"] / df_agg_mecanicos_total["TOTAL_CORRECOES"]
+    )
+    df_agg_mecanicos_total["PERC_CORRECOES_TARDIAS"] = 100 * (
+        df_agg_mecanicos_total["TOTAL_CORRECOES_TARDIAS"] / df_agg_mecanicos_total["TOTAL_CORRECOES"]
+    )
+
+    # Seta ID como inteiro
+    df_agg_mecanicos_total["COLABORADOR QUE EXECUTOU O SERVICO"] = df_agg_mecanicos_total[
+        "COLABORADOR QUE EXECUTOU O SERVICO"
+    ].astype(int)
+
+    # Encontra o nome do colaborador
+    for ix, linha in df_agg_mecanicos_total.iterrows():
+        colaborador = linha["COLABORADOR QUE EXECUTOU O SERVICO"]
+        nome_colaborador = "Não encontrado"
+        if colaborador in df_mecanicos["cod_colaborador"].values:
+            nome_colaborador = df_mecanicos[df_mecanicos["cod_colaborador"] == colaborador]["nome_colaborador"].values[
+                0
+            ]
+            nome_colaborador = re.sub(r"(?<!^)([A-Z])", r" \1", nome_colaborador)
+
+        df_agg_mecanicos_total.at[ix, "LABEL_COLABORADOR"] = f"{int(colaborador)} - {nome_colaborador}"
+
+    return df_agg_mecanicos_total
+
+
 @callback(
     Output("store-dados-os", "data"),
     [
@@ -751,6 +960,7 @@ def computa_retrabalho(lista_os, datas, min_dias):
         "df_estatistica": pd.DataFrame().to_dict("records"),
         "df_previous_services": pd.DataFrame().to_dict("records"),
         "df_fixes": pd.DataFrame().to_dict("records"),
+        "df_os_mecanicos": pd.DataFrame().to_dict("records"),
         "vazio": True,
     }
 
@@ -776,11 +986,15 @@ def computa_retrabalho(lista_os, datas, min_dias):
     # Obtem os dados de retrabalho
     df_estatistica, df_previous_services, df_fixes = obtem_estatistica_retrabalho(df_filtro, min_dias)
 
+    # Obtem os dados dos colaboradores
+    df_os_mecanicos = obtem_estatistica_colaboradores(df_fixes, df_previous_services)
+
     return {
         "df_estatistica": df_estatistica.to_dict("records"),
         "df_previous_services": df_previous_services.to_dict("records"),
         "df_fixes": df_fixes.to_dict("records"),
         "df_os_filtradas": df_filtro.to_dict("records"),
+        "df_os_mecanicos": df_os_mecanicos.to_dict("records"),
         "vazio": False,
     }
 
@@ -803,36 +1017,21 @@ def plota_grafico_pizza_retrabalho(data):
         df_estatistica["RETRABALHOS"].sum(),
     ]
 
-    # Gera o DF
-    df_pie = pd.DataFrame({"CATEGORIA": labels, "QUANTIDADE": values})
-
-    # Gera as Cores
-    color_map = {
-        "Correções de Primeira": tema.COR_SUCESSO,
-        "Correções Tardias": tema.COR_ALERTA,
-        "Retrabalhos": tema.COR_ERRO,
-    }
-
     # Gera o gráfico
-    fig = px.pie(
-        df_pie,
-        values="QUANTIDADE",
-        names="CATEGORIA",
-        color="CATEGORIA",
-        color_discrete_map=color_map,
+    fig = go.Figure(
+        data=[
+            go.Pie(
+                labels=labels,
+                values=values,
+                direction="clockwise",
+                marker_colors=[tema.COR_SUCESSO, tema.COR_ALERTA, tema.COR_ERRO],
+                sort=True,
+            )
+        ]
     )
 
     # Arruma legenda e texto
     fig.update_traces(textinfo="value+percent", sort=False)
-    fig.update_layout(
-        legend=dict(
-            orientation="h",  # Horizontal legend
-            yanchor="bottom",  # Anchor the legend to the bottom of the chart
-            y=-0.1,  # Position the legend slightly below the chart
-            xanchor="center",  # Center the legend horizontally
-            x=0.5,  # Center position
-        )
-    )
 
     # Retorna o gráfico
     return fig
@@ -1133,6 +1332,7 @@ def update_tabela_mecanicos_retrabalho(data):
     # Obtém os dados de retrabalho
     #####
     df_previous_services = pd.DataFrame(data["df_previous_services"])
+    df_fixes = pd.DataFrame(data["df_fixes"])
     df_os_filtradas = pd.DataFrame(data["df_os_filtradas"])
 
     # Total de OS
@@ -1153,9 +1353,35 @@ def update_tabela_mecanicos_retrabalho(data):
             .reset_index(name="TOTAL_RETRABALHO")
         )
 
+    # Corrigidas de primeiro
+    df_total_fixes_por_mecanico = df_total_os_por_mecanico.copy()
+
+    if df_fixes.empty:
+        df_total_fixes_por_mecanico["TOTAL_CORRIGIDA_DE_PRIMEIRA"] = 0
+    else:
+        df_total_fixes_por_mecanico = (
+            df_fixes.groupby("COLABORADOR QUE EXECUTOU O SERVICO")["CORRIGIDA_DE_PRIMEIRA"]
+            .sum()
+            .reset_index(name="TOTAL_CORRIGIDA_DE_PRIMEIRA")
+        )
+
     # Merge
     df_total_mecanico = df_total_os_por_mecanico.merge(df_total_retrabalho_por_mecanico, how="left")
-    # Seta 0 para aqueles que não estão no retrabalho
+    df_total_mecanico = df_total_mecanico.merge(df_total_fixes_por_mecanico, how="left")
+
+    # Seta 0 para aqueles que não estão no retrabalho ou nao tiveram correções de primeira
+    df_total_mecanico = df_total_mecanico.fillna(0)
+
+    # Calcula correções tardias e total de correções
+    df_total_mecanico["TOTAL_CORRECOES_TARDIA"] = (
+        df_total_mecanico["TOTAL_OS"] - df_total_mecanico["TOTAL_CORRIGIDA_DE_PRIMEIRA"]
+    )
+    df_total_mecanico["TOTAL_CORRECOES"] = (
+        df_total_mecanico["TOTAL_CORRECOES_TARDIA"] + df_total_mecanico["TOTAL_CORRIGIDA_DE_PRIMEIRA"]
+    )
+
+    # Calcula a participação do mecânico nos problemas
+
     df_total_mecanico["TOTAL_RETRABALHO"] = df_total_mecanico["TOTAL_RETRABALHO"].fillna(0)
 
     # Calcula a percentagem
