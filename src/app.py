@@ -193,7 +193,7 @@ if __name__ == "__main__":
     APP_DEBUG = bool(os.getenv("DEBUG", True))
     APP_PORT = os.getenv("PORT", 10000)
 
-    PROFILE = os.getenv("PROFILE", False)
+    PROFILE = bool(os.getenv("PROFILE", False))
     PROF_DIR = os.getenv("PROFILE_DIR", "profile")
 
     if PROFILE:

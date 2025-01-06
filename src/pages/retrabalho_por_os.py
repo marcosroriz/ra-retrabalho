@@ -654,6 +654,268 @@ layout = dbc.Container(
 ##############################################################################
 
 
+def obtem_dados_os_sql(lista_os, data_inicio, data_fim, min_dias):
+    # Query
+    query = f"""
+    WITH os_diff_days AS (
+        SELECT 
+            od."NUMERO DA OS",
+            od."CODIGO DO VEICULO",
+            od."DESCRICAO DO SERVICO",
+            od."DESCRICAO DO MODELO",
+            od."DATA INICIO SERVIÇO",
+            od."DATA DE FECHAMENTO DO SERVICO",
+            od."COLABORADOR QUE EXECUTOU O SERVICO",
+            od."COMPLEMENTO DO SERVICO",
+            EXTRACT(day FROM od."DATA INICIO SERVIÇO"::timestamp without time zone - lag(od."DATA INICIO SERVIÇO"::timestamp without time zone) OVER (PARTITION BY od."CODIGO DO VEICULO" ORDER BY (od."DATA INICIO SERVIÇO"::timestamp without time zone))) AS prev_days,
+            EXTRACT(day FROM lead(od."DATA INICIO SERVIÇO"::timestamp without time zone) OVER (PARTITION BY od."CODIGO DO VEICULO" ORDER BY (od."DATA INICIO SERVIÇO"::timestamp without time zone)) - od."DATA INICIO SERVIÇO"::timestamp without time zone) AS next_days
+        FROM 
+            os_dados od
+        WHERE 
+            od."DATA INICIO SERVIÇO" IS NOT NULL 
+            AND od."DATA INICIO SERVIÇO" >= '{data_inicio}'
+            AND od."DATA DE FECHAMENTO DO SERVICO" <= '{data_fim}'
+            -- AND od."DESCRICAO DO SERVICO" IN ({', '.join([f"'{x}'" for x in lista_os])})
+            AND (
+                "DESCRICAO DO SERVICO" = 'Motor cortando alimentação'
+                OR
+                "DESCRICAO DO SERVICO" = 'Motor sem força'
+            )
+            AND od."CODIGO DO VEICULO" ='50733'
+        ), 
+    os_with_flags AS (
+        SELECT 
+            os_diff_days."NUMERO DA OS",
+            os_diff_days."CODIGO DO VEICULO",
+            os_diff_days."DESCRICAO DO SERVICO",
+            os_diff_days."DESCRICAO DO MODELO",
+            os_diff_days."DATA INICIO SERVIÇO",
+            os_diff_days."DATA DE FECHAMENTO DO SERVICO",
+            os_diff_days."COLABORADOR QUE EXECUTOU O SERVICO",
+            os_diff_days."COMPLEMENTO DO SERVICO",
+            os_diff_days.prev_days,
+            os_diff_days.next_days,
+            CASE
+                WHEN os_diff_days.next_days <= {min_dias}::numeric THEN true
+                ELSE false
+            END AS retrabalho,
+            CASE
+                WHEN os_diff_days.next_days > {min_dias}::numeric OR os_diff_days.next_days IS NULL THEN true
+                ELSE false
+            END AS correcao,
+            CASE
+                WHEN 
+                    (os_diff_days.next_days > {min_dias}::numeric OR os_diff_days.next_days IS NULL) 
+                    AND 
+                    (os_diff_days.prev_days > {min_dias}::numeric OR os_diff_days.prev_days IS NULL) 
+                    THEN true
+                ELSE false
+            END AS correcao_primeira
+        FROM 
+            os_diff_days
+        ),
+    problem_grouping AS (
+        SELECT 
+            SUM(
+                CASE
+                    WHEN os_with_flags.correcao THEN 1
+                    ELSE 0
+                END) OVER (PARTITION BY os_with_flags."CODIGO DO VEICULO" ORDER BY os_with_flags."DATA INICIO SERVIÇO") AS problem_no,
+            os_with_flags."NUMERO DA OS",
+            os_with_flags."CODIGO DO VEICULO",
+            os_with_flags."DESCRICAO DO SERVICO",
+            os_with_flags."DESCRICAO DO MODELO",
+            os_with_flags."DATA INICIO SERVIÇO",
+            os_with_flags."DATA DE FECHAMENTO DO SERVICO",
+            os_with_flags."COLABORADOR QUE EXECUTOU O SERVICO",
+            os_with_flags."COMPLEMENTO DO SERVICO",
+            os_with_flags.prev_days,
+            os_with_flags.next_days,
+            os_with_flags.retrabalho,
+            os_with_flags.correcao,
+            os_with_flags.correcao_primeira
+        FROM 
+            os_with_flags
+        )
+    
+    SELECT
+        CASE
+            WHEN problem_grouping.retrabalho THEN problem_grouping.problem_no + 1
+            ELSE problem_grouping.problem_no
+        END AS problem_no,
+        problem_grouping."NUMERO DA OS",
+        problem_grouping."CODIGO DO VEICULO",
+        problem_grouping."DESCRICAO DO MODELO",
+        problem_grouping."DESCRICAO DO SERVICO",
+        problem_grouping."DATA INICIO SERVIÇO",
+        problem_grouping."DATA DE FECHAMENTO DO SERVICO",
+        problem_grouping."COLABORADOR QUE EXECUTOU O SERVICO",
+        problem_grouping."COMPLEMENTO DO SERVICO",
+        problem_grouping.prev_days,
+        problem_grouping.next_days,
+        problem_grouping.retrabalho,
+        problem_grouping.correcao,
+        problem_grouping.correcao_primeira
+    FROM 
+        problem_grouping
+    ORDER BY 
+        problem_grouping."DATA INICIO SERVIÇO";
+    """
+
+    print(query)
+    df_os_query = pd.read_sql_query(query, pgEngine)
+
+    # Tratamento de datas
+    df_os_query["DATA INICIO SERVICO"] = pd.to_datetime(df_os_query["DATA INICIO SERVIÇO"])
+    df_os_query["DATA DE FECHAMENTO DO SERVICO"] = pd.to_datetime(df_os_query["DATA DE FECHAMENTO DO SERVICO"])
+
+    return df_os_query
+
+
+def obtem_estatistica_retrabalho_sql(df_os, min_dias):
+    # Extraí os DFs
+    df_retrabalho = df_os[df_os["retrabalho"]]
+    df_correcao = df_os[df_os["correcao"]]
+    df_correcao_primeira = df_os[df_os["correcao_primeira"]]
+
+    # Estatísticas por modelo
+    df_modelo = (
+        df_os.groupby("DESCRICAO DO MODELO")
+        .agg(
+            {
+                "NUMERO DA OS": "count",
+                "retrabalho": "sum",
+                "correcao": "sum",
+                "correcao_primeira": "sum",
+                "problem_no": lambda x: x.nunique(),  # Conta o número de problemas distintos
+            }
+        )
+        .reset_index()
+    )
+    # Renomeia algumas colunas
+    df_modelo = df_modelo.rename(
+        columns={
+            "NUMERO DA OS": "TOTAL_DE_OS",
+            "retrabalho": "RETRABALHOS",
+            "correcao": "CORRECOES",
+            "correcao_primeira": "CORRECOES_DE_PRIMEIRA",
+            "problem_no": "NUM_PROBLEMAS",
+        }
+    )
+    # Correções Tardias
+    df_modelo["CORRECOES_TARDIA"] = df_modelo["CORRECOES"] - df_modelo["CORRECOES_DE_PRIMEIRA"]
+    # Calcula as porcentagens
+    df_modelo["PERC_RETRABALHO"] = 100 * (df_modelo["RETRABALHOS"] / df_modelo["TOTAL_DE_OS"])
+    df_modelo["PERC_CORRECOES"] = 100 * (df_modelo["CORRECOES"] / df_modelo["TOTAL_DE_OS"])
+    df_modelo["PERC_CORRECOES_DE_PRIMEIRA"] = 100 * (df_modelo["CORRECOES_DE_PRIMEIRA"] / df_modelo["TOTAL_DE_OS"])
+    df_modelo["PERC_CORRECOES_TARDIA"] = 100 * (df_modelo["CORRECOES_TARDIA"] / df_modelo["TOTAL_DE_OS"])
+    df_modelo["REL_PROBLEMA_OS"] = df_modelo["NUM_PROBLEMAS"] / df_modelo["TOTAL_DE_OS"]
+
+    # Estatísticas por colaborador
+    df_colaborador = (
+        df_os.groupby("COLABORADOR QUE EXECUTOU O SERVICO")
+        .agg(
+            {
+                "NUMERO DA OS": "count",
+                "retrabalho": "sum",
+                "correcao": "sum",
+                "correcao_primeira": "sum",
+                "problem_no": lambda x: x.nunique(),  # Conta o número de problemas distintos
+            }
+        )
+        .reset_index()
+    )
+    # Renomeia algumas colunas
+    df_colaborador = df_colaborador.rename(
+        columns={
+            "NUMERO DA OS": "TOTAL_DE_OS",
+            "retrabalho": "RETRABALHOS",
+            "correcao": "CORRECOES",
+            "correcao_primeira": "CORRECOES_DE_PRIMEIRA",
+            "problem_no": "NUM_PROBLEMAS",
+        }
+    )
+    # Correções Tardias
+    df_colaborador["CORRECOES_TARDIA"] = df_colaborador["CORRECOES"] - df_colaborador["CORRECOES_DE_PRIMEIRA"]
+    # Calcula as porcentagens
+    df_colaborador["PERC_RETRABALHO"] = 100 * (df_colaborador["RETRABALHOS"] / df_colaborador["TOTAL_DE_OS"])
+    df_colaborador["PERC_CORRECOES"] = 100 * (df_colaborador["CORRECOES"] / df_colaborador["TOTAL_DE_OS"])
+    df_colaborador["PERC_CORRECOES_DE_PRIMEIRA"] = 100 * (
+        df_colaborador["CORRECOES_DE_PRIMEIRA"] / df_colaborador["TOTAL_DE_OS"]
+    )
+    df_colaborador["PERC_CORRECOES_TARDIA"] = 100 * (df_colaborador["CORRECOES_TARDIA"] / df_colaborador["TOTAL_DE_OS"])
+    df_colaborador["REL_PROBLEMA_OS"] = df_colaborador["NUM_PROBLEMAS"] / df_colaborador["TOTAL_DE_OS"]
+
+    # Adiciona label de nomes
+    df_colaborador["COLABORADOR QUE EXECUTOU O SERVICO"] = df_colaborador["COLABORADOR QUE EXECUTOU O SERVICO"].astype(
+        int
+    )
+
+    # Encontra o nome do colaborador
+    for ix, linha in df_colaborador.iterrows():
+        colaborador = linha["COLABORADOR QUE EXECUTOU O SERVICO"]
+        nome_colaborador = "Não encontrado"
+        if colaborador in df_mecanicos["cod_colaborador"].values:
+            nome_colaborador = df_mecanicos[df_mecanicos["cod_colaborador"] == colaborador]["nome_colaborador"].values[
+                0
+            ]
+            nome_colaborador = re.sub(r"(?<!^)([A-Z])", r" \1", nome_colaborador)
+
+        df_colaborador.at[ix, "LABEL_COLABORADOR"] = f"{int(colaborador)} - {nome_colaborador}"
+
+    # Dias para correção
+    df_dias_para_correcao = (
+        df_os.groupby(["problem_no", "CODIGO DO VEICULO", "DESCRICAO DO MODELO"])
+        .agg(data_inicio=("DATA INICIO SERVIÇO", "min"), data_fim=("DATA INICIO SERVIÇO", "max"))
+        .reset_index()
+    )
+    df_dias_para_correcao["data_inicio"] = pd.to_datetime(df_dias_para_correcao["data_inicio"])
+    df_dias_para_correcao["data_fim"] = pd.to_datetime(df_dias_para_correcao["data_fim"])
+    df_dias_para_correcao["dias_correcao"] = (
+        df_dias_para_correcao["data_fim"] - df_dias_para_correcao["data_inicio"]
+    ).dt.days
+
+    # DF estatística
+    df_estatistica = pd.DataFrame(
+        {
+            "TOTAL_DE_OS": len(df_os),
+            "TOTAL_DE_PROBLEMAS": len(df_os[df_os["correcao"]]),
+            "TOTAL_DE_RETRABALHOS": len(df_os[df_os["retrabalho"]]),
+            "TOTAL_DE_CORRECOES": len(df_os[df_os["correcao"]]),
+            "TOTAL_DE_CORRECOES_DE_PRIMEIRA": len(df_os[df_os["correcao_primeira"]]),
+            "MEDIA_DE_DIAS_PARA_CORRECAO": df_dias_para_correcao["dias_correcao"].mean(),
+            "MEDIANA_DE_DIAS_PARA_CORRECAO": df_dias_para_correcao["dias_correcao"].median(),
+        },
+        index=[0],
+    )
+    # Correções tardias
+    df_estatistica["TOTAL_DE_CORRECOES_TARDIAS"] = (
+        df_estatistica["TOTAL_DE_CORRECOES"] - df_estatistica["TOTAL_DE_CORRECOES_DE_PRIMEIRA"]
+    )
+    # Rel probl/os
+    df_estatistica["RELACAO_PROBLEMA_OS"] = df_estatistica["TOTAL_DE_PROBLEMAS"] / df_estatistica["TOTAL_DE_OS"]
+
+    # Porcentagens
+    df_estatistica["PERC_RETRABALHO"] = 100 * (df_estatistica["TOTAL_DE_RETRABALHOS"] / df_estatistica["TOTAL_DE_OS"])
+    df_estatistica["PERC_CORRECOES"] = 100 * (df_estatistica["TOTAL_DE_CORRECOES"] / df_estatistica["TOTAL_DE_OS"])
+    df_estatistica["PERC_CORRECOES_DE_PRIMEIRA"] = 100 * (
+        df_estatistica["TOTAL_DE_CORRECOES_DE_PRIMEIRA"] / df_estatistica["TOTAL_DE_OS"]
+    )
+    df_estatistica["PERC_CORRECOES_TARDIAS"] = 100 * (
+        df_estatistica["TOTAL_DE_CORRECOES_TARDIAS"] / df_estatistica["TOTAL_DE_OS"]
+    )
+    
+    return {
+        "df_estatistica": df_estatistica.to_dict("records"),
+        "df_retrabalho": df_retrabalho.to_dict("records"),
+        "df_correcao": df_correcao.to_dict("records"),
+        "df_correcao_primeira": df_correcao_primeira.to_dict("records"),
+        "df_modelo": df_modelo.to_dict("records"),
+        "df_colaborador": df_colaborador.to_dict("records"),
+        "df_dias_para_correcao": df_dias_para_correcao.to_dict("records"),
+    }
+
+
 def obtem_dados_os(lista_os):
     # Query
     query = f"""
@@ -965,46 +1227,75 @@ def obtem_estatistica_colaboradores(df_fixes, df_previous_services):
 )
 def computa_retrabalho(lista_os, datas, min_dias):
     dados_vazios = {
+        "df_os": pd.DataFrame().to_dict("records"),
         "df_estatistica": pd.DataFrame().to_dict("records"),
-        "df_previous_services": pd.DataFrame().to_dict("records"),
-        "df_fixes": pd.DataFrame().to_dict("records"),
-        "df_os_mecanicos": pd.DataFrame().to_dict("records"),
+        "df_retrabalho": pd.DataFrame().to_dict("records"),
+        "df_correcao": pd.DataFrame().to_dict("records"),
+        "df_correcao_primeira": pd.DataFrame().to_dict("records"),
+        "df_modelo": pd.DataFrame().to_dict("records"),
+        "df_colaborador": pd.DataFrame().to_dict("records"),
+        "df_dias_para_correcao": pd.DataFrame().to_dict("records"),
         "vazio": True,
     }
 
+    # Verifica se foi preenchido
     if (lista_os is None or not lista_os) or (datas is None or not datas or None in datas):
         return dados_vazios
 
-    #####
-    # Obtém os dados de retrabalho
-    #####
-    df_os = obtem_dados_os(lista_os)
+    # Obtem datas
+    inicio_data = datas[0]
+    fim_data = datas[1]
 
-    # Filtrar os dados
-    inicio = pd.to_datetime(datas[0])
-    fim = pd.to_datetime(datas[1])
-
-    # Filtrar os dados
-    df_filtro = df_os[(df_os["DATA_INICIO_SERVICO_DT"] >= inicio) & (df_os["DATA_FECHAMENTO_SERVICO_DT"] <= fim)]
+    # Realiza consulta
+    df_os_sql = obtem_dados_os_sql(lista_os, inicio_data, fim_data, min_dias)
 
     # Verifica se há dados, caso negativo retorna vazio
-    if df_filtro.empty:
+    df_filtro_sql = df_os_sql[
+        (df_os_sql["DATA INICIO SERVICO"] >= pd.to_datetime(inicio_data))
+        & (df_os_sql["DATA DE FECHAMENTO DO SERVICO"] <= pd.to_datetime(fim_data))
+    ]
+    if df_filtro_sql.empty:
         return dados_vazios
 
-    # Obtem os dados de retrabalho
-    df_estatistica, df_previous_services, df_fixes = obtem_estatistica_retrabalho(df_filtro, min_dias)
-
-    # Obtem os dados dos colaboradores
-    df_os_mecanicos = obtem_estatistica_colaboradores(df_fixes, df_previous_services)
+    # Computa retrabalho
+    dict_dfs_retrabalhos = obtem_estatistica_retrabalho_sql(df_os_sql, min_dias)
 
     return {
-        "df_estatistica": df_estatistica.to_dict("records"),
-        "df_previous_services": df_previous_services.to_dict("records"),
-        "df_fixes": df_fixes.to_dict("records"),
-        "df_os_filtradas": df_filtro.to_dict("records"),
-        "df_os_mecanicos": df_os_mecanicos.to_dict("records"),
+        "df_os": df_filtro_sql.to_dict("records"),
+        "df_estatistica": dict_dfs_retrabalhos["df_estatistica"],
+        "df_retrabalho": dict_dfs_retrabalhos["df_retrabalho"],
+        "df_correcao": dict_dfs_retrabalhos["df_correcao"],
+        "df_correcao_primeira": dict_dfs_retrabalhos["df_correcao_primeira"],
+        "df_modelo": dict_dfs_retrabalhos["df_modelo"],
+        "df_colaborador": dict_dfs_retrabalhos["df_colaborador"],
+        "df_dias_para_correcao": dict_dfs_retrabalhos["df_dias_para_correcao"],
         "vazio": False,
     }
+
+    # Obtém os dados de retrabalho
+    # df_os = obtem_dados_os(lista_os)
+
+    # # Filtrar os dados
+    # inicio = pd.to_datetime(datas[0])
+    # fim = pd.to_datetime(datas[1])
+
+    # # Filtrar os dados
+    # df_filtro = df_os[(df_os["DATA_INICIO_SERVICO_DT"] >= inicio) & (df_os["DATA_FECHAMENTO_SERVICO_DT"] <= fim)]
+
+    # # Obtem os dados de retrabalho
+    # df_estatistica, df_previous_services, df_fixes = obtem_estatistica_retrabalho(df_filtro, min_dias)
+
+    # # Obtem os dados dos colaboradores
+    # df_os_mecanicos = obtem_estatistica_colaboradores(df_fixes, df_previous_services)
+
+    # return {
+    #     "df_estatistica": df_estatistica.to_dict("records"),
+    #     "df_previous_services": df_previous_services.to_dict("records"),
+    #     "df_fixes": df_fixes.to_dict("records"),
+    #     "df_os_filtradas": df_filtro.to_dict("records"),
+    #     "df_os_mecanicos": df_os_mecanicos.to_dict("records"),
+    #     "vazio": False,
+    # }
 
 
 @callback(Output("graph-retrabalho-correcoes", "figure"), Input("store-dados-os", "data"))
@@ -1012,17 +1303,16 @@ def plota_grafico_pizza_retrabalho(data):
     if data["vazio"]:
         return go.Figure()
 
-    #####
     # Obtém os dados de retrabalho
-    #####
+
     df_estatistica = pd.DataFrame(data["df_estatistica"])
 
     # Prepara os dados para o gráfico
     labels = ["Correções de Primeira", "Correções Tardias", "Retrabalhos"]
     values = [
-        df_estatistica["CORRECOES_DE_PRIMEIRA"].sum(),
-        df_estatistica["CORRECOES_TARDIA"].sum(),
-        df_estatistica["RETRABALHOS"].sum(),
+        df_estatistica["TOTAL_DE_CORRECOES_DE_PRIMEIRA"].values[0],
+        df_estatistica["TOTAL_DE_CORRECOES_TARDIAS"].values[0],
+        df_estatistica["TOTAL_DE_RETRABALHOS"].values[0]
     ]
 
     # Gera o gráfico
@@ -1050,36 +1340,35 @@ def plota_grafico_cumulativo_retrabalho(data):
     if data["vazio"]:
         return go.Figure()
 
-    #####
-    # Obtém os dados de retrabalho
-    #####
-    df_fixes = pd.DataFrame(data["df_fixes"])
+    # Obtém os dados de dias para correção
+    df_dias_para_correcao = pd.DataFrame(data["df_dias_para_correcao"])
+    
+    # Ordenando os dados e criando a coluna cumulativa em termos percentuais
+    df_dias_para_correcao_ordenado = df_dias_para_correcao.sort_values(by="dias_correcao").copy()
+    df_dias_para_correcao_ordenado["cumulative_percentage"] = (
+        df_dias_para_correcao_ordenado["dias_correcao"].expanding().count() / len(df_dias_para_correcao_ordenado) * 100
+    )
 
     # Verifica se df não está vazio
-    if df_fixes.empty:
+    if df_dias_para_correcao_ordenado.empty:
         return go.Figure()
-
-    # Ordenando os dados e criando a coluna cumulativa em termos percentuais
-    df_fixes_sorted = df_fixes.sort_values(by="DIAS_ATE_OS_CORRIGIR").copy()
-    df_fixes_sorted["cumulative_percentage"] = (
-        df_fixes_sorted["DIAS_ATE_OS_CORRIGIR"].expanding().count() / len(df_fixes_sorted) * 100
-    )
 
     # Criando o gráfico cumulativo com o eixo y em termos percentuais
     fig = px.line(
-        df_fixes_sorted,
-        x="DIAS_ATE_OS_CORRIGIR",
+        df_dias_para_correcao_ordenado,
+        x="dias_correcao",
         y="cumulative_percentage",
-        labels={"DIAS_ATE_OS_CORRIGIR": "Dias", "cumulative_percentage": "Correções Cumulativas (%)"},
+        labels={"dias_correcao": "Dias", "cumulative_percentage": "Correções Cumulativas (%)"},
     )
 
+    # Mostrando os pontos e linhas
     fig.update_traces(
         mode="markers+lines",
     )
 
     # Adiciona o Topo
-    df_top = df_fixes_sorted.groupby("DIAS_ATE_OS_CORRIGIR", as_index=False).agg(
-        cumulative_percentage=("cumulative_percentage", "max"), count=("DIAS_ATE_OS_CORRIGIR", "count")
+    df_top = df_dias_para_correcao_ordenado.groupby("dias_correcao", as_index=False).agg(
+        cumulative_percentage=("cumulative_percentage", "max"), count=("dias_correcao", "count")
     )
     # Reseta o index para garantir a sequencialidade
     df_top = df_top.reset_index(drop=True)
@@ -1102,7 +1391,7 @@ def plota_grafico_cumulativo_retrabalho(data):
             df_top.at[i, "label"] = f"{df_top.at[i, 'cumulative_percentage']:.0f}% <br>({df_top.at[i, 'count']})"
 
     fig.add_scatter(
-        x=df_top["DIAS_ATE_OS_CORRIGIR"],
+        x=df_top["dias_correcao"],
         y=df_top["cumulative_percentage"] + 3,
         mode="text",
         text=df_top["label"],
@@ -1112,7 +1401,7 @@ def plota_grafico_cumulativo_retrabalho(data):
     )
 
     fig.update_layout(
-        xaxis=dict(range=[-1, df_fixes_sorted["DIAS_ATE_OS_CORRIGIR"].max() + 3]),
+        xaxis=dict(range=[-1, df_dias_para_correcao_ordenado["dias_correcao"].max() + 3]),
     )
 
     # Retorna o gráfico
@@ -1323,10 +1612,10 @@ def atualiza_indicadores_mecanico(data):
     media_correcoes_tardias = round(float(df_os_mecanicos["PERC_CORRECOES_TARDIAS"].mean()), 2)
 
     return [
-        f"{media_os_por_mecanico} OS / colaborador", 
+        f"{media_os_por_mecanico} OS / colaborador",
         f"{media_retrabalhos_por_mecanico}%",
         f"{media_correcoes_primeira}%",
-        f"{media_correcoes_tardias}%"
+        f"{media_correcoes_tardias}%",
     ]
 
 
