@@ -320,7 +320,7 @@ layout = dbc.Container(
                                             mb="xs",
                                         ),
                                     ),
-                                    dbc.CardFooter("% de OS que são retrabalho"),
+                                    dbc.CardFooter("% das OS são retrabalho"),
                                 ],
                                 class_name="card-box-shadow",
                             ),
@@ -387,7 +387,7 @@ layout = dbc.Container(
         # dbc.Row(dmc.Space(h=20)),
         dbc.Row([html.H4("Grafículo Cumulativo Dias para Correção"), dcc.Graph(id="graph-retrabalho-cumulativo")]),
         # dbc.Row(dmc.Space(h=20)),
-        dbc.Row([html.H4("Retrabalho por Modelo"), dcc.Graph(id="graph-retrabalho-por-modelo")]),
+        dbc.Row([html.H4("Retrabalho por Modelo (%)"), dcc.Graph(id="graph-retrabalho-por-modelo-perc")]),
         # Top Colaboradores Retrabalho
         html.Hr(),
         dbc.Row(
@@ -408,7 +408,7 @@ layout = dbc.Container(
                                     [
                                         dmc.Title(id="indicador-media-os-colaborador", order=2),
                                         DashIconify(
-                                            icon="icon-park-outline:average",
+                                            icon="bxs:car-mechanic",
                                             width=48,
                                             color="black",
                                         ),
@@ -418,7 +418,7 @@ layout = dbc.Container(
                                     mb="xs",
                                 ),
                             ),
-                            dbc.CardFooter("Média de OS / Mecânico"),
+                            dbc.CardFooter("Média de OS / Colaborador"),
                         ],
                         class_name="card-box-shadow",
                     ),
@@ -445,7 +445,7 @@ layout = dbc.Container(
                                     mb="xs",
                                 ),
                             ),
-                            dbc.CardFooter("Média da % de Retrabalho dos Colaboradores"),
+                            dbc.CardFooter("Média da % de retrabalho dos colaboradores"),
                         ],
                         class_name="card-box-shadow",
                     ),
@@ -474,7 +474,7 @@ layout = dbc.Container(
                                     mb="xs",
                                 ),
                             ),
-                            dbc.CardFooter("Média da % de Correções de Primeira dos Colaboradores"),
+                            dbc.CardFooter("Média da % de correções de primeira dos colaboradores"),
                         ],
                         class_name="card-box-shadow",
                     ),
@@ -501,7 +501,7 @@ layout = dbc.Container(
                                     mb="xs",
                                 ),
                             ),
-                            dbc.CardFooter("Média da % de Correções Tardias dos Colaboradores"),
+                            dbc.CardFooter("Média da % de correções tardias dos colaboradores"),
                         ],
                         class_name="card-box-shadow",
                     ),
@@ -660,14 +660,15 @@ def obtem_dados_os(lista_os):
         SELECT * FROM os_dados od
         -- WHERE "DESCRICAO DO SERVICO" IN ({', '.join([f"'{x}'" for x in lista_os])})
         -- where "DESCRICAO DO SERVICO" = 'Motor cortando alimentação' and "CODIGO DO VEICULO" ='50177'
-        where 
-(
-"DESCRICAO DO SERVICO" = 'Motor cortando alimentação'
-or
-"DESCRICAO DO SERVICO" = 'Motor sem força'
-)
-and 
-"CODIGO DO VEICULO" ='50733'
+            where 
+    (
+    "DESCRICAO DO SERVICO" = 'Motor cortando alimentação'
+    or
+    "DESCRICAO DO SERVICO" = 'Motor sem força'
+    )
+    and 
+    "CODIGO DO VEICULO" ='50733'
+
     """
     df_os_query = pd.read_sql_query(query, pgEngine)
 
@@ -800,7 +801,10 @@ def obtem_estatistica_retrabalho(df_os, min_dias):
 
                 # Adiciona ao df_fixes
                 fixes.append(current_row)
+
                 break
+
+    # TODO: Planificar df e remover detalhamento por descrição de serviço para facilitar manipulação de dados
 
     # Remove duplicados e reseta os indexes
     df_previous_services = pd.DataFrame(previous_services).drop_duplicates().reset_index(drop=True)
@@ -826,9 +830,13 @@ def obtem_estatistica_retrabalho(df_os, min_dias):
         df_fixes_agg["CORRECOES_DE_PRIMEIRA"] = 0
     else:
         df_fixes_agg = df_fixes.groupby("DESCRICAO DO SERVICO").size().reset_index(name="CORRECOES")
-        correcoes_de_primeira = len(df_fixes[df_fixes["CORRIGIDA_DE_PRIMEIRA"]])
-        df_fixes_agg["CORRECOES_TARDIA"] = len(df_fixes) - correcoes_de_primeira
-        df_fixes_agg["CORRECOES_DE_PRIMEIRA"] = correcoes_de_primeira
+        df_fixes_agg_de_primeira = (
+            df_fixes.groupby("DESCRICAO DO SERVICO")["CORRIGIDA_DE_PRIMEIRA"]
+            .sum()
+            .reset_index(name="CORRECOES_DE_PRIMEIRA")
+        )
+        df_fixes_agg = df_fixes_agg.merge(df_fixes_agg_de_primeira, on="DESCRICAO DO SERVICO", how="left").fillna(0)
+        df_fixes_agg["CORRECOES_TARDIA"] = df_fixes_agg["CORRECOES"] - df_fixes_agg["CORRECOES_DE_PRIMEIRA"]
 
     # Junta eles
     df_merge = pd.merge(df_os_agg, df_previous_services_agg, on="DESCRICAO DO SERVICO", how="left").fillna(0)
@@ -1107,15 +1115,12 @@ def plota_grafico_cumulativo_retrabalho(data):
         xaxis=dict(range=[-1, df_fixes_sorted["DIAS_ATE_OS_CORRIGIR"].max() + 3]),
     )
 
-    # Atualiza as fontes
-    # fig.update_layout(font_family=tema.FONTE_GRAFICOS, font_size=tema.FONTE_TAMANHO)
-
     # Retorna o gráfico
     return fig
 
 
-@callback(Output("graph-retrabalho-por-modelo", "figure"), Input("store-dados-os", "data"))
-def plota_grafico_barras_retrabalho_por_modelo(data):
+@callback(Output("graph-retrabalho-por-modelo-perc", "figure"), Input("store-dados-os", "data"))
+def plota_grafico_barras_retrabalho_por_modelo_perc(data):
     if data["vazio"]:
         return go.Figure()
 
@@ -1244,7 +1249,9 @@ def plota_grafico_barras_retrabalho_por_modelo(data):
 
 @callback(
     [
+        Output("indicador-total-problemas", "children"),
         Output("indicador-total-os", "children"),
+        Output("indicador-relacao-problema-os", "children"),
         Output("indicador-porcentagem-retrabalho", "children"),
         Output("indicador-num-medio-dias-correcao", "children"),
         Output("indicador-num-medio-de-os-ate-correcao", "children"),
@@ -1253,7 +1260,7 @@ def plota_grafico_barras_retrabalho_por_modelo(data):
 )
 def atualiza_indicadores(data):
     if data["vazio"]:
-        return ["", "", "", ""]
+        return ["", "", "", "", "", ""]
 
     #####
     # Obtém os dados de retrabalho
@@ -1262,62 +1269,65 @@ def atualiza_indicadores(data):
     df_fixes = pd.DataFrame(data["df_fixes"])
 
     # Valores
+    total_de_problemas = int(np.max(df_fixes["GRUPO_PROBLEMA"]) + 1)
     total_de_os = int(df_estatistica["TOTAL_DE_OS"].sum())
-    total_de_retrabalhos = round(float(df_estatistica["PERC_RETRABALHO"].mean()), 1)
+    rel_os_problemas = round(float(total_de_os / total_de_problemas), 2)
+
+    perc_retrabalho = round(100 * float(df_estatistica["RETRABALHOS"].sum() / df_estatistica["TOTAL_DE_OS"].sum()), 2)
     dias_ate_corrigir = round(float(df_fixes["DIAS_ATE_OS_CORRIGIR"].mean()), 2)
     num_os_ate_corrigir = round(float(df_fixes["NUM_OS_ATE_OS_CORRIGIR"].mean()), 2)
 
-    return [f"{total_de_os} OS", f"{total_de_retrabalhos}%", f"{dias_ate_corrigir}", f"{num_os_ate_corrigir} OS"]
+    return [
+        f"{total_de_problemas} problemas",
+        f"{total_de_os} OS",
+        f"{rel_os_problemas} OS/prob",
+        f"{perc_retrabalho}%",
+        f"{dias_ate_corrigir} dias",
+        f"{num_os_ate_corrigir} OS",
+    ]
 
 
 @callback(
     [
         Output("indicador-media-os-colaborador", "children"),
         Output("indicador-media-porcentagem-retrabalho", "children"),
+        Output("indicador-media-correcoes-primeira-colaborador", "children"),
+        Output("indicador-media-correcoes-tardias-colaborador", "children"),
     ],
     Input("store-dados-os", "data"),
 )
 def atualiza_indicadores_mecanico(data):
     if data["vazio"]:
-        return ["", ""]
+        return ["", "", "", ""]
 
     #####
     # Obtém os dados de retrabalho
     #####
     df_previous_services = pd.DataFrame(data["df_previous_services"])
     df_os_filtradas = pd.DataFrame(data["df_os_filtradas"])
+    df_os_mecanicos = pd.DataFrame(data["df_os_mecanicos"])
 
     # Total de OS
-    df_total_os_por_mecanico = (
-        df_os_filtradas.groupby(["COLABORADOR QUE EXECUTOU O SERVICO"]).size().reset_index(name="TOTAL_OS")
-    )
+    total_os = df_os_mecanicos["TOTAL_OS"].sum()
 
-    # Retrabalhos
-    # Lida com os casos sem dados
-    df_total_retrabalho_por_mecanico = df_total_os_por_mecanico.copy().rename(columns={"TOTAL_OS": "TOTAL_RETRABALHO"})
+    # Média de OS por mecânico
+    media_os_por_mecanico = round(float(df_os_mecanicos["TOTAL_OS"].mean()), 2)
 
-    if df_previous_services.empty:
-        df_total_retrabalho_por_mecanico["TOTAL_RETRABALHO"] = 0
-    else:
-        df_total_retrabalho_por_mecanico = (
-            df_previous_services.groupby("COLABORADOR QUE EXECUTOU O SERVICO")
-            .size()
-            .reset_index(name="TOTAL_RETRABALHO")
-        )
+    # Retrabalhos médios
+    media_retrabalhos_por_mecanico = round(float(df_os_mecanicos["PERC_RETRABALHOS"].mean()), 2)
 
-    # Merge
-    df_total_mecanico = df_total_os_por_mecanico.merge(df_total_retrabalho_por_mecanico, how="left")
-    # Seta 0 para aqueles que não estão no retrabalho
-    df_total_mecanico["TOTAL_RETRABALHO"] = df_total_mecanico["TOTAL_RETRABALHO"].fillna(0)
+    # Correções de Primeira
+    media_correcoes_primeira = round(float(df_os_mecanicos["PERC_CORRECOES_PRIMEIRA"].mean()), 2)
 
-    # Calcula a percentagem
-    df_total_mecanico["PERC_RETRABALHO"] = 100 * (df_total_mecanico["TOTAL_RETRABALHO"] / df_total_mecanico["TOTAL_OS"])
+    # Correções Tardias
+    media_correcoes_tardias = round(float(df_os_mecanicos["PERC_CORRECOES_TARDIAS"].mean()), 2)
 
-    # Valores
-    media_os = round(df_total_mecanico["TOTAL_OS"].mean(), 2)
-    media_retrabalho = round(float(df_total_mecanico["PERC_RETRABALHO"].mean()), 2)
-
-    return [f"{media_os} OS", f"{media_retrabalho}%"]
+    return [
+        f"{media_os_por_mecanico} OS / colaborador", 
+        f"{media_retrabalhos_por_mecanico}%",
+        f"{media_correcoes_primeira}%",
+        f"{media_correcoes_tardias}%"
+    ]
 
 
 @callback(
