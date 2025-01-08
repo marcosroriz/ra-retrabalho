@@ -55,6 +55,7 @@ pio.templates["plotly"]["layout"]["colorway"] = tema.PALETA_CORES
 # Stylesheets do Mantine + nosso tema
 stylesheets = [
     TEMA,
+    "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.min.css",
     "https://unpkg.com/@mantine/dates@7/styles.css",
     "https://unpkg.com/@mantine/code-highlight@7/styles.css",
     "https://unpkg.com/@mantine/charts@7/styles.css",
@@ -77,7 +78,7 @@ pio.templates["tema"] = go.layout.Template(
             family=tema.FONTE_GRAFICOS,
             size=tema.FONTE_TAMANHO,  # Default font size
         ),
-        colorway=tema.PALETA_CORES
+        colorway=tema.PALETA_CORES,
     )
 )
 
@@ -151,7 +152,10 @@ app_shell = dmc.AppShell(
             # },
         ),
         dmc.AppShellMain(
-            dmc.DatesProvider(children=dbc.Container([dash.page_container], fluid=True), settings={"locale": "pt"}),
+            dmc.DatesProvider(
+                children=dbc.Container([dash.page_container], fluid=True, className="dbc dbc-ag-grid"),
+                settings={"locale": "pt"},
+            ),
         ),
     ],
     header={"height": 90},
@@ -193,7 +197,7 @@ if __name__ == "__main__":
     APP_DEBUG = bool(os.getenv("DEBUG", True))
     APP_PORT = os.getenv("PORT", 10000)
 
-    PROFILE = bool(os.getenv("PROFILE", False))
+    PROFILE = os.getenv("PROFILE", "False").lower() in ("true", "1", "yes")
     PROF_DIR = os.getenv("PROFILE_DIR", "profile")
 
     if PROFILE:
