@@ -43,13 +43,32 @@ from db import PostgresSingleton
 pgDB = PostgresSingleton.get_instance()
 pgEngine = pgDB.get_engine()
 
-# Obtem o quantitativo de OS por categoria
-df_os_categorias_pg = pd.read_sql(
+# Obtem as Oficinas
+df_oficinas_pg = pd.read_sql(
     """
-    SELECT * FROM os_dados_view_agg_count
+    SELECT 
+        DISTINCT "DESCRICAO DA OFICINA"
+    FROM 
+        mat_view_retrabalho_10_dias mvrd 
+    ORDER BY 
+        "DESCRICAO DA OFICINA"
     """,
-    pgEngine,
+    pgEngine
 )
+
+# Seções
+df_secoes_pg = pd.read_sql(
+    """
+    SELECT DISTINCT
+        "DESCRICAO DA SECAO"
+    FROM 
+        mat_view_retrabalho_10_dias mvrd 
+    ORDER BY
+        "DESCRICAO DA SECAO"
+    """,
+    pgEngine
+)
+
 
 # Tabela Top OS de Retrabalho
 data_filtro_top_os_geral_retrabalho = [
@@ -89,34 +108,18 @@ tbl_top_os_geral_retrabalho = [
 ##############################################################################
 # Registro da página #########################################################
 ##############################################################################
-dash.register_page(__name__, path="/", icon="mdi:bus-alert")
+dash.register_page(__name__, name="Visão Geral", path="/", icon="mdi:bus-alert")
 
 ##############################################################################
 layout = dbc.Container(
     [
-        # Loading
-        dmc.LoadingOverlay(
-            visible=True,
-            id="loading-overlay",
-            loaderProps={"size": "xl"},
-            overlayProps={
-                "radius": "lg",
-                "blur": 2,
-                "style": {
-                    "top": 0,  # Start from the top of the viewport
-                    "left": 0,  # Start from the left of the viewport
-                    "width": "100vw",  # Cover the entire width of the viewport
-                    "height": "100vh",  # Cover the entire height of the viewport
-                },
-            },
-            zIndex=10,
-        ),
         # Cabeçalho
         html.Hr(),
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="mdi:bus-alert", width=45), width="auto"),
-                dbc.Col(html.H1("Visão Geral das OSs", className="align-self-center"), width=True),
+                dbc.Col(html.H1("Visão Geral das OSs",
+                        className="align-self-center"), width=True),
             ],
             align="center",
         ),
@@ -128,9 +131,9 @@ layout = dbc.Container(
                         [
                             html.Div(
                                 [
-                                    dbc.Label("Data (Intervalo)"),
+                                    dbc.Label("Data (intervalo) de análise"),
                                     dmc.DatePicker(
-                                        id="input-intervalo-datas",
+                                        id="input-intervalo-datas-geral",
                                         allowSingleDateInRange=True,
                                         type="range",
                                         minDate=date(2024, 1, 1),
@@ -143,22 +146,151 @@ layout = dbc.Container(
                         ],
                         body=True,
                     ),
-                    md=12,
-                )
+                    md=6,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            html.Div(
+                                [
+                                    dbc.Label(
+                                        "Tempo entre OS (em dias) para ser considerado retrabalho"
+                                    ),
+                                    dcc.Dropdown(
+                                        id="input-select-dias-geral-retrabalho",
+                                        options=[
+                                            {"label": "10 dias", "value": 10},
+                                            {"label": "15 dias", "value": 15},
+                                            {"label": "30 dias", "value": 30}
+                                        ],
+                                        placeholder="Período em dias",
+                                        value=10
+                                    ),
+                                ],
+                                className="dash-bootstrap",
+                            ),
+                        ],
+                        body=True,
+                    ),
+                    md=6,
+                ),
+            ]
+        ),
+        dbc.Row(dmc.Space(h=10)),
+        dbc.Row(
+            [
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            html.Div(
+                                [
+                                    dbc.Label("Oficinas"),
+                                    dcc.Dropdown(
+                                        id="input-select-oficina-visao-geral",
+                                        options=[
+                                            {"label": "TODAS", "value": "TODAS"},
+                                            {"label": "GARAGEM CENTRAL", "value": "GARAGEM CENTRAL - RAL"},
+                                            {"label": "GARAGEM NOROESTE", "value": "GARAGEM NOROESTE - RAL"},
+                                            {"label": "GARAGEM SUL", "value": "GARAGEM SUL - RAL"},
+                                        ],
+                                        multi=True,
+                                        value=["TODAS"],
+                                        placeholder="Selecione uma ou mais oficinas...",
+                                    ),
+                                ],
+                                className="dash-bootstrap",
+                            ),
+                        ],
+                        body=True,
+                    ),
+                    md=6,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            html.Div(
+                                [
+                                    dbc.Label("Seções (Categorias) de Manutenção"),
+                                    dcc.Dropdown(
+                                        id="input-select-secao-visao-geral",
+                                        options=[
+                                            {"label": "TODAS", "value": "TODAS"},
+                                            {"label": "BORRACHARIA", "value": "MANUTENCAO BORRACHARIA"},
+                                            {"label": "ELETRICA", "value": "MANUTENCAO ELETRICA"},
+                                            {"label": "GARAGEM", "value": "MANUTENÇÃO GARAGEM"},
+                                            {"label": "LANTERNAGEM", "value": "MANUTENCAO LANTERNAGEM"},
+                                            {"label": "LUBRIFICAÇÃO", "value": "LUBRIFICAÇÃO"},
+                                            {"label": "MECANICA", "value": "MANUTENCAO MECANICA"},
+                                            {"label": "PINTURA", "value": "MANUTENCAO PINTURA"},
+                                            {"label": "SERVIÇOS DE TERCEIROS", "value": "SERVIÇOS DE TERCEIROS"},
+                                            {"label": "SETOR DE ALINHAMENTO", "value": "SETOR DE ALINHAMENTO"},
+                                            {"label": "SETOR DE POLIMENTO", "value": "SETOR DE POLIMENTO"},
+                                        ],
+                                        multi=True,
+                                        value=["TODAS"],
+                                        placeholder="Selecione uma ou mais seções...",
+                                    ),
+                                ],
+                                # className="dash-bootstrap",
+                            ),
+                        ],
+                        body=True,
+                    ),
+                    md=6,
+                ),
             ]
         ),
         dcc.Store(id="store-dados-geral-os"),
         dbc.Row(dmc.Space(h=10)),
         # Conteúdo
         html.Hr(),
-        dbc.Row(dmc.Space(h=10)),
+        # Evolução do Retrabalho
+        dmc.LineChart(
+            id="dmc-chart",
+            h=300,
+            dataKey="date",
+            data=[],
+            series=[],
+            curveType="linear",
+            tickLine="xy",
+            withXAxis=False,
+            withDots=False,
+        ),
         dbc.Row(dmc.Space(h=10)),
         dbc.Row(
             [
-                html.H4("Evolução do Retrabalho de OS por Seção / Mês"),
-                dcc.Graph(id="graph-evolucao-retrabalho-os-secao-por-mes"),
+                html.H4("Retrabalho por Garagem / Mês"),
+                dcc.Graph(id="graph-evolucao-retrabalho-por-garagem-por-mes"),
             ]
         ),
+        dbc.Row(
+            [
+                html.H4("Retrabalho por Seção / Mês"),
+                dcc.Graph(id="graph-evolucao-retrabalho-por-secao-por-mes"),
+            ]
+        ),
+        # dbc.Row(
+        #     [
+        #         dbc.Col(
+        #             dbc.Row(
+        #                 [
+        #                     html.H4("Retrabalho por Garagem / Mês"),
+        #                     dcc.Graph(id="graph-evolucao-retrabalho-por-garagem-por-mes"),
+        #                 ]
+        #             ),
+        #             md=6
+        #         ),
+        #         dbc.Col(
+        #             dbc.Row(
+        #                 [
+        #                     html.H4("Retrabalho por Seção / Mês"),
+        #                     dcc.Graph(id="graph-evolucao-retrabalho-por-secao-por-mes"),
+        #                 ]
+        #             ),
+        #             md=6
+        #         )
+        #     ]
+        # ),
         # Tabela com as estatísticas gerais de Retrabalho de OS por Seção
         html.Hr(),
         html.H4("Top OS de Retrabalho Geral"),
@@ -239,73 +371,101 @@ layout = dbc.Container(
 # CALLBACKS ##################################################################
 ##############################################################################
 
-# @callback(
-#     Output("store-dados-geral-os", "data"),
-#     [
-#         Input("input-lista-os", "value"),
-#         Input("input-intervalo-datas", "value"),
-#         Input("input-dias", "value"),
-#     ],
-#     running=[(Output("loading-overlay", "visible"), True, False)],
-# )
-# def computa_retrabalho(lista_os, datas, min_dias):
-#     dados_vazios = {
-#         "df_os": pd.DataFrame().to_dict("records"),
-#         "df_estatistica": pd.DataFrame().to_dict("records"),
-#         "df_retrabalho": pd.DataFrame().to_dict("records"),
-#         "df_correcao": pd.DataFrame().to_dict("records"),
-#         "df_correcao_primeira": pd.DataFrame().to_dict("records"),
-#         "df_modelo": pd.DataFrame().to_dict("records"),
-#         "df_colaborador": pd.DataFrame().to_dict("records"),
-#         "df_dias_para_correcao": pd.DataFrame().to_dict("records"),
-#         "df_num_os_por_problema": pd.DataFrame().to_dict("records"),
-#         "vazio": True,
-#     }
+@callback(
+    Output("store-dados-geral-os", "data"),
+    [
+        Input("input-intervalo-datas-geral", "value"),
+        Input("input-select-dias-geral-retrabalho", "value"),
+    ],
+)
+def computa_retrabalho(datas, min_dias):
+    dados_vazios = {
+        "df_agg_oficina": pd.DataFrame().to_dict("records"),
+        "vazio": True,
+    }
 
+    if datas is None or not datas or None in datas or min_dias is None:
+        return dados_vazios
+
+    return dados_vazios
 
 @callback(
-    Output("graph-evolucao-retrabalho-os-secao-por-mes", "figure"),
-    Input("input-intervalo-datas", "value"),
-    running=[(Output("loading-overlay", "visible"), True, False)],
+    [
+        Output("dmc-chart", "data"),
+        Output("dmc-chart", "series"),
+    ],
+    [
+        Input("input-intervalo-datas-geral", "value"),
+        Input("input-select-dias-geral-retrabalho", "value"),
+    ]
 )
-def plota_grafico_evolucao_retrabalho_os_por_mes(datas):
-    if datas is None or not datas or None in datas:
-        return go.Figure()
+def plota_dmc(datas, min_dias):
+    if datas is None or not datas or None in datas or min_dias is None:
+        return [], []
 
-    query = """
-    SELECT  
+    query = f"""
+    SELECT
         to_char(to_timestamp("DATA DE FECHAMENTO DO SERVICO", 'YYYY-MM-DD"T"HH24:MI:SS'), 'YYYY-MM') AS year_month,
-        "DESCRICAO DA SECAO",
-        COUNT(*) as "TOTAL_OS",
-        SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END) AS "TOTAL_RETRABALHO",
-        SUM(CASE WHEN correcao THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO",
-        SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO_PRIMEIRA",
-	    ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_RETRABALHO",
-	    ROUND(SUM(CASE WHEN correcao THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_CORRECAO",
-	    ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_CORRECAO_PRIMEIRA"
-	FROM 
-        mat_view_retrabalho_10_dias
-    GROUP BY 
-        year_month, "DESCRICAO DA SECAO"
-    ORDER BY 
+        "DESCRICAO DA OFICINA",
+        ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_RETRABALHO"
+    FROM
+        mat_view_retrabalho_{min_dias}_dias
+    WHERE
+        "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{datas[0]}' AND '{datas[1]}'
+    GROUP BY
+        year_month, "DESCRICAO DA OFICINA"
+    ORDER BY
         year_month;
     """
 
     df = pd.read_sql(query, pgEngine)
 
     # Arruma dt
-    df["year_month_dt"] = pd.to_datetime(df["year_month"], format="%Y-%m", errors="coerce")
+    df["year_month_dt"] = pd.to_datetime(
+        df["year_month"], format="%Y-%m", errors="coerce")
+
+
+@callback(
+    Output("graph-evolucao-retrabalho-por-garagem-por-mes", "figure"),
+    [
+        Input("input-intervalo-datas-geral", "value"),
+        Input("input-select-dias-geral-retrabalho", "value"),
+    ]
+)
+def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias):
+    if datas is None or not datas or None in datas or min_dias is None:
+        return go.Figure()
+
+    query = f"""
+    SELECT
+        to_char(to_timestamp("DATA DE FECHAMENTO DO SERVICO", 'YYYY-MM-DD"T"HH24:MI:SS'), 'YYYY-MM') AS year_month,
+        "DESCRICAO DA OFICINA",
+        ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_RETRABALHO"
+    FROM
+        mat_view_retrabalho_{min_dias}_dias
+    WHERE
+        "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{datas[0]}' AND '{datas[1]}'
+    GROUP BY
+        year_month, "DESCRICAO DA OFICINA"
+    ORDER BY
+        year_month;
+    """
+
+    df = pd.read_sql(query, pgEngine)
+
+    # Arruma dt
+    df["year_month_dt"] = pd.to_datetime(
+        df["year_month"], format="%Y-%m", errors="coerce")
 
     # Cores
-    # color_map = {"Não definido": "#1F77B4", "Amarelo": "#EECA3B", "Vermelho": "#D62728", "Verde": "#2CA02C"}
 
     # Gera o gráfico
     fig = px.line(
         df,
         x="year_month_dt",
         y="PERC_RETRABALHO",
-        color="DESCRICAO DA SECAO",
-        labels={"month_year_dt": "Ano-Mês", "count": "# OS"},
+        color="DESCRICAO DA OFICINA",
+        labels={"DESCRICAO DA OFICINA": "Oficina", "year_month_dt": "Ano-Mês", "PERC_RETRABALHO": "% Retrabalho"},
         markers=True,
     )
 
@@ -315,6 +475,76 @@ def plota_grafico_evolucao_retrabalho_os_por_mes(datas):
     # Gera ticks todo mês
     fig.update_xaxes(dtick="M1", tickformat="%Y-%b", title_text="Ano-Mês")
 
+    fig.update_layout(
+        height=400,  # Define a altura do gráfico
+    )
+
+    return fig
+
+
+@callback(
+    Output("graph-evolucao-retrabalho-por-secao-por-mes", "figure"),
+    [
+        Input("input-intervalo-datas-geral", "value"),
+        Input("input-select-dias-geral-retrabalho", "value"),
+    ]
+)
+def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias):
+    if datas is None or not datas or None in datas or min_dias is None:
+        return go.Figure()
+
+    query = f"""
+    SELECT
+        to_char(to_timestamp("DATA DE FECHAMENTO DO SERVICO", 'YYYY-MM-DD"T"HH24:MI:SS'), 'YYYY-MM') AS year_month,
+        "DESCRICAO DA SECAO",
+        ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_RETRABALHO"
+    FROM
+        mat_view_retrabalho_{min_dias}_dias
+    WHERE
+        "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{datas[0]}' AND '{datas[1]}'
+    GROUP BY
+        year_month, "DESCRICAO DA SECAO"
+    ORDER BY
+        year_month;
+    """
+
+    df = pd.read_sql(query, pgEngine)
+
+    # Arruma dt
+    df["year_month_dt"] = pd.to_datetime(
+        df["year_month"], format="%Y-%m", errors="coerce")
+
+    # Gera o gráfico
+    fig = px.line(
+        df,
+        x="year_month_dt",
+        y="PERC_RETRABALHO",
+        color="DESCRICAO DA SECAO",
+        labels={"DESCRICAO DA SECAO": "Seção", "year_month_dt": "Ano-Mês", "PERC_RETRABALHO": "% Retrabalho"},
+        markers=True,
+    )
+
+    # Coloca % no eixo y
+    fig.update_yaxes(tickformat=".0%", title="% Retrabalho (Total de OS)")
+
+    # Gera ticks todo mês
+    fig.update_xaxes(dtick="M1", tickformat="%Y-%b", title_text="Ano-Mês")
+
+    fig.update_layout(
+        # legend=dict(
+        #     orientation="h",
+        #     yanchor="bottom",
+        #     y=-1.02,
+        #     xanchor="right",
+        #     x=1,
+        #     title=None
+        # ),
+        height=400,  # Define a altura do gráfico
+    )
+    # fig.update_layout(
+    #     legend_x=0,
+    #     legend_y=0
+    # )
     return fig
 
 
@@ -341,7 +571,8 @@ def atualiza_filtro_tabela_top_os_geral_retrabalho(filter_value):
                 "isExternalFilterPresent": {"function": "true" if filter_value != "TODAS" else "false"},
                 "doesExternalFilterPass": {
                     "function": (
-                        "true" if filter_value == "TODAS" else f"params.data.'DESCRICAO DA SECAO' == '{filter_value}'"
+                        "true" if filter_value == "TODAS" else f"params.data.'DESCRICAO DA SECAO' == '{
+                            filter_value}'"
                     )
                 },
             }

@@ -4,6 +4,21 @@
 # Dashboard de RETRABALHO para o projeto RA / CEIA-UFG
 
 # Dotenv
+from werkzeug.middleware.profiler import ProfilerMiddleware
+from db import PostgresSingleton
+import pandas as pd
+import tema
+from dash_iconify import DashIconify
+from dash.exceptions import PreventUpdate
+import dash_mantine_components as dmc
+import plotly.graph_objs as go
+import plotly.io as pio
+import plotly.express as px
+import dash_ag_grid as dag
+import dash_bootstrap_components as dbc
+import dash_auth
+from dash import Dash, _dash_renderer, html, dcc, callback, Input, Output, State
+import dash
 import os
 from dotenv import load_dotenv
 
@@ -11,31 +26,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Importar bibliotecas do dash
-import dash
-from dash import Dash, _dash_renderer, html, dcc, callback, Input, Output, State
-import dash_auth
-import dash_bootstrap_components as dbc
-import dash_ag_grid as dag
-import plotly.express as px
-import plotly.io as pio
-import plotly.graph_objs as go
 
 # Extensões
-import dash_mantine_components as dmc
-from dash.exceptions import PreventUpdate
-from dash_iconify import DashIconify
 
 # Tema
-import tema
 
 # Pandas
-import pandas as pd
 
 # Banco de Dados
-from db import PostgresSingleton
 
 # Profiler
-from werkzeug.middleware.profiler import ProfilerMiddleware
 
 ##############################################################################
 # CONFIGURAÇÕES BÁSICAS ######################################################
@@ -90,54 +90,50 @@ pio.templates.default = "tema"
 ##############################################################################
 
 # Dash
-app = Dash("Dashboard de OSs", external_stylesheets=stylesheets, external_scripts=scripts, use_pages=True)
+app = Dash("Dashboard de OSs", external_stylesheets=stylesheets,
+           external_scripts=scripts, use_pages=True)
 
 # Server
 server = app.server
 
+# Menu / Navbar
+
+
+def criarMenu(dirVertical=True):
+    return dbc.Nav(
+        [
+            dbc.NavLink(
+                page["name"], href=page["relative_path"], active="exact")
+            for page in dash.page_registry.values()
+        ],
+        vertical=dirVertical,
+        pills=True,
+    )
+
+
 # Cabeçalho
 header = dmc.Group(
     [
-        dmc.Burger(id="burger-button", opened=False, hiddenFrom="md"),
-        html.Img(src=app.get_asset_url("logo.png"), height=40),
-        dmc.Text(["RA-UFG"], size="2rem", fw=700),
+        dmc.Group(
+            [
+                dmc.Burger(id="burger-button", opened=False, hiddenFrom="md"),
+                html.Img(src=app.get_asset_url("logo.png"), height=40),
+                dmc.Text(["RA-UFG"], size="2rem", fw=700),
+            ]
+        ),
+        dmc.Group(
+            [
+                criarMenu(dirVertical=False),
+            ],
+            ml="xl",
+            gap=0,
+            visibleFrom="sm",
+        ),
     ],
-    justify="flex-start",
-)
-
-# Menu
-navbar = dcc.Loading(
-    dmc.ScrollArea(
-        [
-            dbc.Nav(
-                [
-                    dbc.NavLink(page["name"], href=page["relative_path"], active="exact")
-                    for page in dash.page_registry.values()
-                ],
-                vertical=True,
-                pills=True,
-            )
-        ],
-        # [
-        #     dmc.NavLink(
-        #         label=page["name"], href=page["relative_path"], leftSection=DashIconify(icon=page["icon"], width=16), fs="xl"
-        #     )
-        #     for page in dash.page_registry.values()
-        # ],
-        # [
-        #     dbc.Nav(
-        #         [
-        #             dbc.NavLink(page["name"], href=page["relative_path"], active="exact")
-        #             for page in dash.page_registry.values()
-        #         ],
-        #         vertical=True,
-        #         pills=True,
-        #     )
-        # ],
-        offsetScrollbars=True,
-        type="scroll",
-        style={"height": "100%"},
-    ),
+    justify="space-between",
+    style={"flex": 1},
+    h="100%",
+    px="md",
 )
 
 # Corpo do app
@@ -145,27 +141,36 @@ app_shell = dmc.AppShell(
     [
         dmc.AppShellHeader(header, p=24, style={"background-color": "#f8f9fa"}),
         dmc.AppShellNavbar(
-            navbar,
-            p=24,
-            # style={
-            #     "background-color": "#f8f9fa",
-            # },
+            id="navbar",
+            children=criarMenu(dirVertical=True),
+            py="md",
+            px=4
         ),
         dmc.AppShellMain(
             dmc.DatesProvider(
-                children=dbc.Container([dash.page_container], fluid=True, className="dbc dbc-ag-grid"),
+                children=dbc.Container(
+                    [dash.page_container], fluid=True, className="dbc dbc-ag-grid"
+                ),
                 settings={"locale": "pt"},
             ),
         ),
+
     ],
     header={"height": 90},
-    padding="xl",
     navbar={
         "width": 300,
-        "breakpoint": "md",
-        "collapsed": {"mobile": True},
+        "breakpoint": "sm",
+        "collapsed": {"desktop": True, "mobile": True},
     },
+    padding="md",
     id="app-shell",
+    # header={"height": 90},
+    # padding="xl",
+    # navbar={
+    #     "width": 300,
+    #     "breakpoint": "sm",
+    #     "collapsed": {"desktop": True, "mobile": True},
+    # },
 )
 
 app.layout = dmc.MantineProvider(app_shell)
@@ -176,8 +181,8 @@ app.layout = dmc.MantineProvider(app_shell)
     Input("burger-button", "opened"),
     State("app-shell", "navbar"),
 )
-def navbar_is_open(opened, navbar):
-    navbar["collapsed"] = {"mobile": not opened}
+def toggle_navbar(opened, navbar):
+    navbar["collapsed"] = {"mobile": not opened, "desktop": True}
     return navbar
 
 
