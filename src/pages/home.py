@@ -53,7 +53,7 @@ df_oficinas_pg = pd.read_sql(
     ORDER BY 
         "DESCRICAO DA OFICINA"
     """,
-    pgEngine
+    pgEngine,
 )
 
 # Seções
@@ -66,7 +66,7 @@ df_secoes_pg = pd.read_sql(
     ORDER BY
         "DESCRICAO DA SECAO"
     """,
-    pgEngine
+    pgEngine,
 )
 
 
@@ -87,9 +87,10 @@ data_filtro_top_os_geral_retrabalho = [
 
 
 tbl_top_os_geral_retrabalho = [
+    {"field": "DESCRICAO DA OFICINA", "headerName": "OFICINA", "minWidth": 200},
     {"field": "DESCRICAO DA SECAO", "headerName": "SEÇÃO"},
     {"field": "DESCRICAO DO SERVICO", "headerName": "SERVIÇO", "minWidth": 200},
-    {"field": "TOTAL_OS", "headerName": "# OS"},
+    {"field": "TOTAL_OS", "headerName": "TOTAL DE OS", "maxWidth": 150, "type": ["numericColumn"]},
     {
         "field": "PERC_RETRABALHO",
         "headerName": "% RETRABALHOS",
@@ -98,7 +99,10 @@ tbl_top_os_geral_retrabalho = [
     },
     {
         "field": "PERC_CORRECAO_PRIMEIRA",
-        "headerName": "% CORRECOES PRIMEIRA",
+        "headerName": "% CORRECOES PRIMEIRA",  # Long header text for testing wrapping
+        "wrapHeaderText": True,  # Enable text wrapping for this column
+        "autoHeaderHeight": True,  # Automatically adjust height if needed
+        "maxWidth": 150,
         "valueFormatter": {"function": "params.value + '%'"},
         "type": ["numericColumn"],
     },
@@ -118,8 +122,7 @@ layout = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="mdi:bus-alert", width=45), width="auto"),
-                dbc.Col(html.H1("Visão Geral das OSs",
-                        className="align-self-center"), width=True),
+                dbc.Col(html.H1("Visão Geral do Retrabalho", className="align-self-center"), width=True),
             ],
             align="center",
         ),
@@ -153,18 +156,16 @@ layout = dbc.Container(
                         [
                             html.Div(
                                 [
-                                    dbc.Label(
-                                        "Tempo entre OS (em dias) para ser considerado retrabalho"
-                                    ),
+                                    dbc.Label("Tempo entre OS (em dias) para ser considerado retrabalho"),
                                     dcc.Dropdown(
                                         id="input-select-dias-geral-retrabalho",
                                         options=[
                                             {"label": "10 dias", "value": 10},
                                             {"label": "15 dias", "value": 15},
-                                            {"label": "30 dias", "value": 30}
+                                            {"label": "30 dias", "value": 30},
                                         ],
                                         placeholder="Período em dias",
-                                        value=10
+                                        value=10,
                                     ),
                                 ],
                                 className="dash-bootstrap",
@@ -243,116 +244,32 @@ layout = dbc.Container(
         dcc.Store(id="store-dados-geral-os"),
         dbc.Row(dmc.Space(h=10)),
         # Conteúdo
-        html.Hr(),
-        # Evolução do Retrabalho
-        dmc.LineChart(
-            id="dmc-chart",
-            h=300,
-            dataKey="date",
-            data=[],
-            series=[],
-            curveType="linear",
-            tickLine="xy",
-            withXAxis=False,
-            withDots=False,
-        ),
-        dbc.Row(dmc.Space(h=10)),
+        dmc.Space(h=10),
         dbc.Row(
             [
-                html.H4("Retrabalho por Garagem / Mês"),
-                dcc.Graph(id="graph-evolucao-retrabalho-por-garagem-por-mes"),
-            ]
-        ),
-        dbc.Row(
-            [
-                html.H4("Retrabalho por Seção / Mês"),
-                dcc.Graph(id="graph-evolucao-retrabalho-por-secao-por-mes"),
-            ]
-        ),
-        # dbc.Row(
-        #     [
-        #         dbc.Col(
-        #             dbc.Row(
-        #                 [
-        #                     html.H4("Retrabalho por Garagem / Mês"),
-        #                     dcc.Graph(id="graph-evolucao-retrabalho-por-garagem-por-mes"),
-        #                 ]
-        #             ),
-        #             md=6
-        #         ),
-        #         dbc.Col(
-        #             dbc.Row(
-        #                 [
-        #                     html.H4("Retrabalho por Seção / Mês"),
-        #                     dcc.Graph(id="graph-evolucao-retrabalho-por-secao-por-mes"),
-        #                 ]
-        #             ),
-        #             md=6
-        #         )
-        #     ]
-        # ),
-        # Tabela com as estatísticas gerais de Retrabalho de OS por Seção
-        html.Hr(),
-        html.H4("Top OS de Retrabalho Geral"),
-        dbc.Row(
-            [
-                dbc.Col(
-                    dbc.Card(
-                        [
-                            html.Div(
-                                [
-                                    dbc.Label("Ordem de Serviço:"),
-                                    dcc.Dropdown(
-                                        id="input-lista-os",
-                                        options=[
-                                            {
-                                                "label": linha["label"],
-                                                "value": linha["value"],
-                                            }
-                                            for linha in data_filtro_top_os_geral_retrabalho
-                                        ],
-                                        value=["TODAS"],
-                                        multi=True,
-                                        placeholder="Selecione uma ou mais seções",
-                                    ),
-                                ],
-                                className="dash-bootstrap",
-                            ),
-                        ],
-                        body=True,
-                    ),
-                    md=12,
-                ),
+                dbc.Col(DashIconify(icon="fluent:arrow-trending-wrench-20-filled", width=45), width="auto"),
+                dbc.Col(html.H4("Evolução por Oficina / Mês", className="align-self-center"), width=True),
             ],
+            align="center",
         ),
-        dmc.RadioGroup(
-            children=dmc.Group(
-                [dmc.Radio(opt["label"], value=opt["value"]) for opt in data_filtro_top_os_geral_retrabalho], my=10
-            ),
-            id="radiogroup-simple",
-            value="react",
-            label="Selecione a Seção para Filtrar",
-            size="sm",
-            mb=10,
-        ),
-        dbc.RadioItems(
-            options=[
-                {"label": "Todas as Seções", "value": "TODAS"},
-                {"label": "Alinhamento", "value": "SETOR DE ALINHAMENTO"},
-                {"label": "Borracharia", "value": "MANUTENCAO BORRACHARIA"},
-                {"label": "Elétrica", "value": "MANUTENCAO ELETRICA"},
-                {"label": "Garagem", "value": "MANUTENÇÃO GARAGEM"},
-                {"label": "Mecânica", "value": "MANUTENCAO MECANICA"},
-                {"label": "Lanternagem", "value": "MANUTENCAO LANTERNAGEM"},
-                {"label": "Lubrificação", "value": "LUBRIFICAÇÃO"},
-                {"label": "Pintura", "value": "MANUTENCAO PINTURA"},
-                {"label": "Polimentos", "value": "SETOR DE POLIMENTO"},
-                {"label": "Terceiros", "value": "SERVIÇOS DE TERCEIROS"},
+        # html.H4("Retrabalho e Correção de Primeira por Oficina / Mês"),
+        dcc.Graph(id="graph-evolucao-retrabalho-por-garagem-por-mes"),
+        dmc.Space(h=40),
+        dbc.Row(
+            [
+                dbc.Col(DashIconify(icon="fluent:arrow-trending-text-20-filled", width=45), width="auto"),
+                dbc.Col(html.H4("Evolução por Seção / Mês", className="align-self-center"), width=True),
             ],
-            value="TODAS",
-            id="radio-filtro-top-os-retrabalho-geral",
-            inline=True,
+            align="center",
         ),
+        # html.H4("Retrabalho e Correção de Primeira por Seção / Mês"),
+        dcc.Graph(id="graph-evolucao-retrabalho-por-secao-por-mes"),
+        dmc.Space(h=20),
+        # Tabela com as estatísticas gerais de Retrabalho
+        html.Hr(),
+        dmc.Space(h=20),
+        html.H4("Detalhamento do Retrabalho"),
+        dmc.Space(h=20),
         dag.AgGrid(
             id="tabela-top-os-retrabalho-geral",
             columnDefs=tbl_top_os_geral_retrabalho,
@@ -363,6 +280,23 @@ layout = dbc.Container(
                 "localeText": locale_utils.AG_GRID_LOCALE_BR,
             },
         ),
+        dmc.Space(h=40),
+        # Tabela com as estatísticas gerais por Colaborador
+        html.Hr(),
+        dmc.Space(h=20),
+        html.H4("Detalhamento do Colaborador"),
+        dmc.Space(h=20),
+        dag.AgGrid(
+            id="tabela-top-os-colaborador-geral",
+            columnDefs=tbl_top_os_geral_retrabalho,
+            rowData=[],
+            defaultColDef={"filter": True, "floatingFilter": True},
+            columnSize="responsiveSizeToFit",
+            dashGridOptions={
+                "localeText": locale_utils.AG_GRID_LOCALE_BR,
+            },
+        ),
+        dmc.Space(h=40),
     ]
 )
 
@@ -371,12 +305,10 @@ layout = dbc.Container(
 # CALLBACKS ##################################################################
 ##############################################################################
 
+
 @callback(
     Output("store-dados-geral-os", "data"),
-    [
-        Input("input-intervalo-datas-geral", "value"),
-        Input("input-select-dias-geral-retrabalho", "value"),
-    ],
+    [Input("input-intervalo-datas-geral", "value"), Input("input-select-dias-geral-retrabalho", "value")],
 )
 def computa_retrabalho(datas, min_dias):
     dados_vazios = {
@@ -389,40 +321,40 @@ def computa_retrabalho(datas, min_dias):
 
     return dados_vazios
 
-@callback(
-    [
-        Output("dmc-chart", "data"),
-        Output("dmc-chart", "series"),
-    ],
-    [
-        Input("input-intervalo-datas-geral", "value"),
-        Input("input-select-dias-geral-retrabalho", "value"),
-    ]
-)
-def plota_dmc(datas, min_dias):
-    if datas is None or not datas or None in datas or min_dias is None:
-        return [], []
 
-    query = f"""
-    SELECT
-        to_char(to_timestamp("DATA DE FECHAMENTO DO SERVICO", 'YYYY-MM-DD"T"HH24:MI:SS'), 'YYYY-MM') AS year_month,
-        "DESCRICAO DA OFICINA",
-        ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_RETRABALHO"
-    FROM
-        mat_view_retrabalho_{min_dias}_dias
-    WHERE
-        "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{datas[0]}' AND '{datas[1]}'
-    GROUP BY
-        year_month, "DESCRICAO DA OFICINA"
-    ORDER BY
-        year_month;
-    """
+# @callback(
+#     [
+#         Output("dmc-chart", "data"),
+#         Output("dmc-chart", "series"),
+#     ],
+#     [
+#         Input("input-intervalo-datas-geral", "value"),
+#         Input("input-select-dias-geral-retrabalho", "value"),
+#     ],
+# )
+# def plota_dmc(datas, min_dias):
+#     if datas is None or not datas or None in datas or min_dias is None:
+#         return [], []
 
-    df = pd.read_sql(query, pgEngine)
+#     query = f"""
+#     SELECT
+#         to_char(to_timestamp("DATA DE FECHAMENTO DO SERVICO", 'YYYY-MM-DD"T"HH24:MI:SS'), 'YYYY-MM') AS year_month,
+#         "DESCRICAO DA OFICINA",
+#         ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_RETRABALHO"
+#     FROM
+#         mat_view_retrabalho_{min_dias}_dias
+#     WHERE
+#         "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{datas[0]}' AND '{datas[1]}'
+#     GROUP BY
+#         year_month, "DESCRICAO DA OFICINA"
+#     ORDER BY
+#         year_month;
+#     """
 
-    # Arruma dt
-    df["year_month_dt"] = pd.to_datetime(
-        df["year_month"], format="%Y-%m", errors="coerce")
+#     df = pd.read_sql(query, pgEngine)
+
+#     # Arruma dt
+#     df["year_month_dt"] = pd.to_datetime(df["year_month"], format="%Y-%m", errors="coerce")
 
 
 @callback(
@@ -430,7 +362,7 @@ def plota_dmc(datas, min_dias):
     [
         Input("input-intervalo-datas-geral", "value"),
         Input("input-select-dias-geral-retrabalho", "value"),
-    ]
+    ],
 )
 def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias):
     if datas is None or not datas or None in datas or min_dias is None:
@@ -440,7 +372,8 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias):
     SELECT
         to_char(to_timestamp("DATA DE FECHAMENTO DO SERVICO", 'YYYY-MM-DD"T"HH24:MI:SS'), 'YYYY-MM') AS year_month,
         "DESCRICAO DA OFICINA",
-        ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_RETRABALHO"
+        100 * ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
+        100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA"
     FROM
         mat_view_retrabalho_{min_dias}_dias
     WHERE
@@ -454,30 +387,86 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias):
     df = pd.read_sql(query, pgEngine)
 
     # Arruma dt
-    df["year_month_dt"] = pd.to_datetime(
-        df["year_month"], format="%Y-%m", errors="coerce")
+    df["year_month_dt"] = pd.to_datetime(df["year_month"], format="%Y-%m", errors="coerce")
 
-    # Cores
+    # Funde (melt) colunas de retrabalho e correção
+    df_combinado = df.melt(
+        id_vars=["year_month_dt", "DESCRICAO DA OFICINA"],
+        value_vars=["PERC_RETRABALHO", "PERC_CORRECAO_PRIMEIRA"],
+        var_name="CATEGORIA",
+        value_name="PERC",
+    )
+
+    # Renomeia as colunas
+    df_combinado["CATEGORIA"] = df_combinado["CATEGORIA"].replace(
+        {"PERC_RETRABALHO": "RETRABALHO", "PERC_CORRECAO_PRIMEIRA": "CORRECAO_PRIMEIRA"}
+    )
+
+    # Multiplica por 100
+    # df_combinado["PERC"] = df_combinado["PERC"] * 100
 
     # Gera o gráfico
     fig = px.line(
-        df,
+        df_combinado,
         x="year_month_dt",
-        y="PERC_RETRABALHO",
+        y="PERC",
         color="DESCRICAO DA OFICINA",
-        labels={"DESCRICAO DA OFICINA": "Oficina", "year_month_dt": "Ano-Mês", "PERC_RETRABALHO": "% Retrabalho"},
+        facet_col="CATEGORIA",
+        facet_col_spacing=0.05,  # Espaçamento entre os gráficos
+        labels={"DESCRICAO DA OFICINA": "Oficina", "year_month_dt": "Ano-Mês", "PERC": "%"},
         markers=True,
     )
 
     # Coloca % no eixo y
-    fig.update_yaxes(tickformat=".0%", title="% Retrabalho (Total de OS)")
+    fig.update_yaxes(tickformat=".0f%")
+
+    # Renomeia o eixo y
+    fig.update_layout(
+        yaxis=dict(
+            title="% Retrabalho",
+        ),
+        yaxis2=dict(
+            title="% Correção de Primeira",
+            overlaying="y",
+            side="right",
+            anchor="x",
+        ),
+        margin=dict(b=100),
+    )
+
+    # Titulo
+    fig.update_layout(
+        annotations=[
+            dict(
+                text="Retrabalho por Garagem (% das OS)",
+                x=0.25,  # X position for the first subplot title
+                y=1.05,  # Y position (above the plot)
+                xref="paper",
+                yref="paper",
+                showarrow=False,
+                font=dict(size=16),
+            ),
+            dict(
+                text="Correção de Primeira por Garagem (% das OS)",
+                x=0.75,  # X position for the second subplot title
+                y=1.05,  # Y position (above the plot)
+                xref="paper",
+                yref="paper",
+                showarrow=False,
+                font=dict(size=16),
+            ),
+        ]
+    )
 
     # Gera ticks todo mês
-    fig.update_xaxes(dtick="M1", tickformat="%Y-%b", title_text="Ano-Mês")
+    fig.update_xaxes(dtick="M1", tickformat="%Y-%b", title_text="Ano-Mês", title_standoff=90)
 
-    fig.update_layout(
-        height=400,  # Define a altura do gráfico
-    )
+    # Adjust the standoff for each X-axis title
+    fig.for_each_xaxis(lambda axis: axis.update(title_standoff=90))  # Increase standoff for spacing
+
+    # fig.update_layout(
+    #     height=400,  # Define a altura do gráfico
+    # )
 
     return fig
 
@@ -487,7 +476,7 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias):
     [
         Input("input-intervalo-datas-geral", "value"),
         Input("input-select-dias-geral-retrabalho", "value"),
-    ]
+    ],
 )
 def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias):
     if datas is None or not datas or None in datas or min_dias is None:
@@ -497,7 +486,8 @@ def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias):
     SELECT
         to_char(to_timestamp("DATA DE FECHAMENTO DO SERVICO", 'YYYY-MM-DD"T"HH24:MI:SS'), 'YYYY-MM') AS year_month,
         "DESCRICAO DA SECAO",
-        ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_RETRABALHO"
+        100 * ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
+        100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA"
     FROM
         mat_view_retrabalho_{min_dias}_dias
     WHERE
@@ -511,105 +501,116 @@ def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias):
     df = pd.read_sql(query, pgEngine)
 
     # Arruma dt
-    df["year_month_dt"] = pd.to_datetime(
-        df["year_month"], format="%Y-%m", errors="coerce")
+    df["year_month_dt"] = pd.to_datetime(df["year_month"], format="%Y-%m", errors="coerce")
+
+    # Funde (melt) colunas de retrabalho e correção
+    df_combinado = df.melt(
+        id_vars=["year_month_dt", "DESCRICAO DA SECAO"],
+        value_vars=["PERC_RETRABALHO", "PERC_CORRECAO_PRIMEIRA"],
+        var_name="CATEGORIA",
+        value_name="PERC",
+    )
+
+    # Renomeia as colunas
+    df_combinado["CATEGORIA"] = df_combinado["CATEGORIA"].replace(
+        {"PERC_RETRABALHO": "RETRABALHO", "PERC_CORRECAO_PRIMEIRA": "CORRECAO_PRIMEIRA"}
+    )
+
+    # Multiplica por 100
+    # df_combinado["PERC"] = df_combinado["PERC"] * 100
 
     # Gera o gráfico
     fig = px.line(
-        df,
+        df_combinado,
         x="year_month_dt",
-        y="PERC_RETRABALHO",
+        y="PERC",
         color="DESCRICAO DA SECAO",
-        labels={"DESCRICAO DA SECAO": "Seção", "year_month_dt": "Ano-Mês", "PERC_RETRABALHO": "% Retrabalho"},
+        facet_col="CATEGORIA",
+        facet_col_spacing=0.05,  # Espaçamento entre os gráficos
+        labels={"DESCRICAO DA SECAO": "Seção", "year_month_dt": "Ano-Mês", "PERC": "%"},
         markers=True,
     )
 
     # Coloca % no eixo y
-    fig.update_yaxes(tickformat=".0%", title="% Retrabalho (Total de OS)")
+    fig.update_yaxes(tickformat=".0f%")
+
+    # Renomeia o eixo y
+    fig.update_layout(
+        yaxis=dict(
+            title="% Retrabalho",
+        ),
+        yaxis2=dict(
+            title="% Correção de Primeira",
+            overlaying="y",
+            side="right",
+            anchor="x",
+        ),
+        margin=dict(b=100),
+    )
+
+    # Titulo
+    fig.update_layout(
+        annotations=[
+            dict(
+                text="Retrabalho por Seção (% das OS)",
+                x=0.25,  # X position for the first subplot title
+                y=1.05,  # Y position (above the plot)
+                xref="paper",
+                yref="paper",
+                showarrow=False,
+                font=dict(size=16),
+            ),
+            dict(
+                text="Correção de Primeira por Seção (% das OS)",
+                x=0.75,  # X position for the second subplot title
+                y=1.05,  # Y position (above the plot)
+                xref="paper",
+                yref="paper",
+                showarrow=False,
+                font=dict(size=16),
+            ),
+        ]
+    )
 
     # Gera ticks todo mês
-    fig.update_xaxes(dtick="M1", tickformat="%Y-%b", title_text="Ano-Mês")
+    fig.update_xaxes(dtick="M1", tickformat="%Y-%b", title_text="Ano-Mês", title_standoff=90)
 
-    fig.update_layout(
-        # legend=dict(
-        #     orientation="h",
-        #     yanchor="bottom",
-        #     y=-1.02,
-        #     xanchor="right",
-        #     x=1,
-        #     title=None
-        # ),
-        height=400,  # Define a altura do gráfico
-    )
+    # Adjust the standoff for each X-axis title
+    fig.for_each_xaxis(lambda axis: axis.update(title_standoff=90))  # Increase standoff for spacing
+
     # fig.update_layout(
-    #     legend_x=0,
-    #     legend_y=0
+    #     height=400,  # Define a altura do gráfico
     # )
+
     return fig
 
 
-filtro_tabela_top_os_geral_retrabalho = {
-    "below25": "params.data['DESCRICAO DA SECAO'] == 25",
-    "between25and50": "params.data.age >= 25 && params.data.age <= 50",
-    "above50": "params.data.age > 50",
-    "dateAfter2008": "dateAfter2008(params)",
-    "everyone": "true",
-}
-
-
-@callback(
-    Output("tabela-top-os-retrabalho-geral", "dashGridOptions"),
-    Input("radio-filtro-top-os-retrabalho-geral", "value"),
-    prevent_initial_call=True,
-)
-def atualiza_filtro_tabela_top_os_geral_retrabalho(filter_value):
-    import json
-
-    print(
-        json.dumps(
-            {
-                "isExternalFilterPresent": {"function": "true" if filter_value != "TODAS" else "false"},
-                "doesExternalFilterPass": {
-                    "function": (
-                        "true" if filter_value == "TODAS" else f"params.data.'DESCRICAO DA SECAO' == '{
-                            filter_value}'"
-                    )
-                },
-            }
-        )
-    )
-    return {
-        # if filter_value is not 'everyone', then we are filtering
-        "isExternalFilterPresent": {"function": "true" if filter_value != "TODAS" else "false"},
-        "doesExternalFilterPass": {
-            "function": "true" if filter_value == "TODAS" else f"params.data['DESCRICAO DA SECAO'] == '{filter_value}'"
-        },
-    }
-
-
-@callback(Output("tabela-top-os-retrabalho-geral", "rowData"), Input("input-intervalo-datas", "value"))
+@callback(Output("tabela-top-os-retrabalho-geral", "rowData"), Input("input-intervalo-datas-geral", "value"))
 def atualiza_tabela_top_os_geral_retrabalho(datas):
     if datas is None or not datas or None in datas:
         return []
 
     query = """
         SELECT
+            "DESCRICAO DA OFICINA",
 	        "DESCRICAO DA SECAO",
             "DESCRICAO DO SERVICO",
             COUNT(*) as "TOTAL_OS",
             SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END) AS "TOTAL_RETRABALHO",
             SUM(CASE WHEN correcao THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO",
             SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO_PRIMEIRA",
-	        100 * ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_RETRABALHO",
-	        100 * ROUND(SUM(CASE WHEN correcao THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_CORRECAO",
-	        100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 2) AS "PERC_CORRECAO_PRIMEIRA"
+	        100 * ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
+	        100 * ROUND(SUM(CASE WHEN correcao THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO",
+	        100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA"
         FROM 
             mat_view_retrabalho_30_dias
         GROUP BY 
-            "DESCRICAO DA SECAO", "DESCRICAO DO SERVICO"
+            "DESCRICAO DA OFICINA", "DESCRICAO DA SECAO", "DESCRICAO DO SERVICO"
         ORDER BY 
             "PERC_RETRABALHO" DESC;
     """
 
     df = pd.read_sql(query, pgEngine)
+
+    print(df)
     return df.to_dict("records")
