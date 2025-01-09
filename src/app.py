@@ -139,7 +139,7 @@ header = dmc.Group(
 # Corpo do app
 app_shell = dmc.AppShell(
     [
-        dmc.AppShellHeader(header, p=24, style={"background-color": "#f8f9fa"}),
+        dmc.AppShellHeader(header, p=24, style={"backgroundColor": "#f8f9fa"}),
         dmc.AppShellNavbar(
             id="navbar",
             children=criarMenu(dirVertical=True),
