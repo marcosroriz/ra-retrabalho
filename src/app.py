@@ -6,11 +6,12 @@
 import os
 import pandas as pd
 
-
 # Dotenv
 from dotenv import load_dotenv
 
 # Carrega variáveis de ambiente
+# env_path="/var/www/ra-retrabalho/src/.env"
+# load_dotenv(env_path)
 load_dotenv()
 
 # Importar bibliotecas do dash
@@ -88,6 +89,8 @@ pio.templates.default = "tema"
 # Dash
 app = Dash(
     "Dashboard de OSs",
+    # assets_folder="/var/www/ra-retrabalho/src/assets",
+    # pages_folder="/var/www/ra-retrabalho/src/pages",
     external_stylesheets=stylesheets,
     external_scripts=scripts,
     use_pages=True,
@@ -97,8 +100,6 @@ app = Dash(
 server = app.server
 
 # Menu / Navbar
-
-
 def criarMenu(dirVertical=True):
     return dbc.Nav(
         [
@@ -194,7 +195,8 @@ auth = dash_auth.BasicAuth(app, dict_users, secret_key=SECRET_KEY)
 # MAIN #######################################################################
 ##############################################################################
 if __name__ == "__main__":
-    APP_DEBUG = bool(os.getenv("DEBUG", True))
+    APP_HOST = os.getenv("HOST", "0.0.0.0")
+    APP_DEBUG = bool(os.getenv("DEBUG", "True")).lower() in ("true", "1", "yes")
     APP_PORT = os.getenv("PORT", 10000)
 
     PROFILE = os.getenv("PROFILE", "False").lower() in ("true", "1", "yes")
@@ -210,4 +212,4 @@ if __name__ == "__main__":
             profile_dir=PROF_DIR,
         )
 
-    app.run(debug=APP_DEBUG, port=APP_PORT)
+    app.run(host=APP_HOST, debug=APP_DEBUG, port=APP_PORT)
