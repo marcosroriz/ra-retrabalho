@@ -118,7 +118,7 @@ header = dmc.Group(
             [
                 dmc.Burger(id="burger-button", opened=False, hiddenFrom="md"),
                 html.Img(src=app.get_asset_url("logo.png"), height=40),
-                dmc.Text(["RA-UFG"], size="2rem", fw=700),
+                dmc.Text(["RA-UFG"], size="2.3rem", fw=700),
             ]
         ),
         dmc.Group(
