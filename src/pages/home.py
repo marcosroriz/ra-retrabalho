@@ -483,7 +483,7 @@ def corrige_input_ordem_servico(lista_os, lista_secaos):
 def subquery_oficinas(lista_oficinas, prefix=""):
     query = ""
     if "TODAS" not in lista_oficinas:
-        query = f'AND {prefix}"DESCRICAO DA OFICINA" IN ({', '.join([f"'{x}'" for x in lista_oficinas])})'
+        query = f"""AND {prefix}"DESCRICAO DA OFICINA" IN ({', '.join([f"'{x}'" for x in lista_oficinas])})"""
 
     return query
 
@@ -491,7 +491,7 @@ def subquery_oficinas(lista_oficinas, prefix=""):
 def subquery_secoes(lista_secaos, prefix=""):
     query = ""
     if "TODAS" not in lista_secaos:
-        query = f'AND {prefix}"DESCRICAO DA SECAO" IN ({', '.join([f"'{x}'" for x in lista_secaos])})'
+        query = f"""AND {prefix}"DESCRICAO DA SECAO" IN ({', '.join([f"'{x}'" for x in lista_secaos])})"""
 
     return query
 
@@ -499,7 +499,7 @@ def subquery_secoes(lista_secaos, prefix=""):
 def subquery_os(lista_os, prefix=""):
     query = ""
     if "TODAS" not in lista_os:
-        query = f'AND {prefix}"DESCRICAO DO SERVICO" IN ({', '.join([f"'{x}'" for x in lista_os])})'
+        query = f"""AND {prefix}"DESCRICAO DO SERVICO" IN ({', '.join([f"'{x}'" for x in lista_os])})"""
 
     return query
 
