@@ -1,41 +1,37 @@
 #!/usr/bin/env python
 # coding: utf-8
-
 # Dashboard de RETRABALHO para o projeto RA / CEIA-UFG
 
-# Dotenv
-from werkzeug.middleware.profiler import ProfilerMiddleware
-from db import PostgresSingleton
-import pandas as pd
-import tema
-from dash_iconify import DashIconify
-from dash.exceptions import PreventUpdate
-import dash_mantine_components as dmc
-import plotly.graph_objs as go
-import plotly.io as pio
-import plotly.express as px
-import dash_ag_grid as dag
-import dash_bootstrap_components as dbc
-import dash_auth
-from dash import Dash, _dash_renderer, html, dcc, callback, Input, Output, State
-import dash
+# Imports básicos
 import os
+import pandas as pd
+
+
+# Dotenv
 from dotenv import load_dotenv
 
 # Carrega variáveis de ambiente
 load_dotenv()
 
 # Importar bibliotecas do dash
+import dash
+import dash_bootstrap_components as dbc
+import dash_auth
+import dash_mantine_components as dmc
+from dash import Dash, _dash_renderer, html, callback, Input, Output, State
 
-# Extensões
+# Graficos
+import plotly.graph_objs as go
+import plotly.io as pio
 
 # Tema
-
-# Pandas
+import tema
 
 # Banco de Dados
+from db import PostgresSingleton
 
 # Profiler
+from werkzeug.middleware.profiler import ProfilerMiddleware
 
 ##############################################################################
 # CONFIGURAÇÕES BÁSICAS ######################################################
@@ -90,8 +86,12 @@ pio.templates.default = "tema"
 ##############################################################################
 
 # Dash
-app = Dash("Dashboard de OSs", external_stylesheets=stylesheets,
-           external_scripts=scripts, use_pages=True)
+app = Dash(
+    "Dashboard de OSs",
+    external_stylesheets=stylesheets,
+    external_scripts=scripts,
+    use_pages=True,
+)
 
 # Server
 server = app.server
@@ -102,8 +102,7 @@ server = app.server
 def criarMenu(dirVertical=True):
     return dbc.Nav(
         [
-            dbc.NavLink(
-                page["name"], href=page["relative_path"], active="exact")
+            dbc.NavLink(page["name"], href=page["relative_path"], active="exact")
             for page in dash.page_registry.values()
         ],
         vertical=dirVertical,
@@ -141,10 +140,7 @@ app_shell = dmc.AppShell(
     [
         dmc.AppShellHeader(header, p=24, style={"backgroundColor": "#f8f9fa"}),
         dmc.AppShellNavbar(
-            id="navbar",
-            children=criarMenu(dirVertical=True),
-            py="md",
-            px=4
+            id="navbar", children=criarMenu(dirVertical=True), py="md", px=4
         ),
         dmc.AppShellMain(
             dmc.DatesProvider(
@@ -154,7 +150,6 @@ app_shell = dmc.AppShell(
                 settings={"locale": "pt"},
             ),
         ),
-
     ],
     header={"height": 90},
     navbar={
@@ -208,7 +203,11 @@ if __name__ == "__main__":
     if PROFILE:
         app.server.config["PROFILE"] = True
         app.server.wsgi_app = ProfilerMiddleware(
-            app.server.wsgi_app, sort_by=["cumtime"], restrictions=[50], stream=None, profile_dir=PROF_DIR
+            app.server.wsgi_app,
+            sort_by=["cumtime"],
+            restrictions=[50],
+            stream=None,
+            profile_dir=PROF_DIR,
         )
 
     app.run(debug=APP_DEBUG, port=APP_PORT)
