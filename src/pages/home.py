@@ -896,7 +896,6 @@ def atualiza_tabela_top_os_geral_retrabalho(datas, min_dias, lista_oficinas, lis
         "PERC_RETRABALHO" DESC;
     """
 
-    print(query)
     # Executa a query
     df = pd.read_sql(query, pgEngine)
 
@@ -1018,10 +1017,6 @@ def atualiza_tabela_top_colaboradores_geral_retrabalho(datas, min_dias, lista_of
     """
 
     # Executa Query
-    print("-------------")
-    print(query)
-    print("-------------")
-
     df = pd.read_sql(query, pgEngine)
 
     df["REL_OS_PROBLEMA"] = round(df["TOTAL_OS"] / df["TOTAL_PROBLEMA"], 2)
