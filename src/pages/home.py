@@ -64,15 +64,15 @@ lista_todas_os.insert(0, {"LABEL": "TODAS"})
 
 # Tabela Top OS de Retrabalho
 tbl_top_os_geral_retrabalho = [
-    {"field": "DESCRICAO DA OFICINA", "headerName": "OFICINA", "filter": "agSetColumnFilter"},
-    {"field": "DESCRICAO DA SECAO", "headerName": "SEÇÃO", "filter": "agSetColumnFilter"},
-    {"field": "DESCRICAO DO SERVICO", "headerName": "SERVIÇO", "filter": "agSetColumnFilter", "minWidth": 300},
+    {"field": "DESCRICAO DA OFICINA", "headerName": "OFICINA", "filter": "agSetColumnFilter", "minWidth": 200},
+    {"field": "DESCRICAO DA SECAO", "headerName": "SEÇÃO", "filter": "agSetColumnFilter", "minWidth": 200},
+    {"field": "DESCRICAO DO SERVICO", "headerName": "SERVIÇO", "filter": "agSetColumnFilter", "minWidth": 250},
     {
         "field": "TOTAL_OS",
         "headerName": "TOTAL DE OS",
         "wrapHeaderText": True,
         "autoHeaderHeight": True,
-        "maxWidth": 150,
+        "maxWidth": 160,
         "filter": "agNumberColumnFilter",
         "type": ["numericColumn"],
     },
@@ -90,8 +90,26 @@ tbl_top_os_geral_retrabalho = [
         "wrapHeaderText": True,
         "autoHeaderHeight": True,
         "filter": "agNumberColumnFilter",
-        "maxWidth": 150,
+        "maxWidth": 160,
         "valueFormatter": {"function": "params.value + '%'"},
+        "type": ["numericColumn"],
+    },
+    {
+        "field": "TOTAL_PROBLEMA",
+        "headerName": "TOTAL DE PROBLEMA",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "filter": "agNumberColumnFilter",
+        "maxWidth": 160,
+        "type": ["numericColumn"],
+    },
+    {
+        "field": "REL_OS_PROBLEMA",
+        "headerName": "REL OS/PROBLEMA",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "maxWidth": 160,
+        "filter": "agNumberColumnFilter",
         "type": ["numericColumn"],
     },
 ]
@@ -124,6 +142,22 @@ tbl_top_colaborador_geral_retrabalho = [
         "valueFormatter": {"function": "params.value + '%'"},
         "type": ["numericColumn"],
     },
+    {
+        "field": "TOTAL_PROBLEMA",
+        "headerName": "TOTAL DE PROBLEMA",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "filter": "agNumberColumnFilter",
+        "type": ["numericColumn"],
+    },
+    {
+        "field": "REL_OS_PROBLEMA",
+        "headerName": "REL OS/PROBLEMA",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "filter": "agNumberColumnFilter",
+        "type": ["numericColumn"],
+    },
 ]
 
 
@@ -142,7 +176,7 @@ layout = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="mdi:bus-alert", width=45), width="auto"),
-                dbc.Col(html.H1("Visão Geral do Retrabalho", className="align-self-center"), width=True),
+                dbc.Col(html.H1("Visão geral do retrabalho", className="align-self-center"), width=True),
             ],
             align="center",
         ),
@@ -232,7 +266,7 @@ layout = dbc.Container(
                         [
                             html.Div(
                                 [
-                                    dbc.Label("Seções (Categorias) de Manutenção"),
+                                    dbc.Label("Seções (categorias) de manutenção"),
                                     dcc.Dropdown(
                                         id="input-select-secao-visao-geral",
                                         options=[
@@ -295,7 +329,7 @@ layout = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="fluent:arrow-trending-wrench-20-filled", width=45), width="auto"),
-                dbc.Col(html.H4("Evolução por Oficina / Mês", className="align-self-center"), width=True),
+                dbc.Col(html.H4("Evolução do retrabalho por oficina / mês", className="align-self-center"), width=True),
             ],
             align="center",
         ),
@@ -304,7 +338,7 @@ layout = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="fluent:arrow-trending-text-20-filled", width=45), width="auto"),
-                dbc.Col(html.H4("Evolução por Seção / Mês", className="align-self-center"), width=True),
+                dbc.Col(html.H4("Evolução do retrabalho por seção / mês", className="align-self-center"), width=True),
             ],
             align="center",
         ),
@@ -314,7 +348,7 @@ layout = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="fluent:line-horizontal-4-search-16-filled", width=45), width="auto"),
-                dbc.Col(html.H4("Detalhamento por Tipo de OS (Serviço)", className="align-self-center"), width=True),
+                dbc.Col(html.H4("Detalhamento por tipo de OS (serviço)", className="align-self-center"), width=True),
             ],
             align="center",
         ),
@@ -325,7 +359,7 @@ layout = dbc.Container(
             columnDefs=tbl_top_os_geral_retrabalho,
             rowData=[],
             defaultColDef={"filter": True, "floatingFilter": True},
-            columnSize="responsiveSizeToFit",
+            columnSize="autoSize",
             dashGridOptions={
                 "localeText": locale_utils.AG_GRID_LOCALE_BR,
             },
@@ -336,7 +370,7 @@ layout = dbc.Container(
             [
                 dbc.Col(DashIconify(icon="mdi:account-wrench", width=45), width="auto"),
                 dbc.Col(
-                    html.H4("Detalhamento por Colaborador das OSs Escolhidas", className="align-self-center"),
+                    html.H4("Detalhamento por colaborador das OSs escolhidas", className="align-self-center"),
                     width=True,
                 ),
             ],
@@ -446,26 +480,26 @@ def corrige_input_ordem_servico(lista_os, lista_secaos):
 
 
 # Subqueries para filtrar as oficinas, seções e ordens de serviço quando TODAS não for selecionado
-def subquery_oficinas(lista_oficinas):
+def subquery_oficinas(lista_oficinas, prefix=""):
     query = ""
     if "TODAS" not in lista_oficinas:
-        query = f'AND "DESCRICAO DA OFICINA" IN ({', '.join([f"'{x}'" for x in lista_oficinas])})'
+        query = f'AND {prefix}"DESCRICAO DA OFICINA" IN ({', '.join([f"'{x}'" for x in lista_oficinas])})'
 
     return query
 
 
-def subquery_secoes(lista_secaos):
+def subquery_secoes(lista_secaos, prefix=""):
     query = ""
     if "TODAS" not in lista_secaos:
-        query = f'AND "DESCRICAO DA SECAO" IN ({', '.join([f"'{x}'" for x in lista_secaos])})'
+        query = f'AND {prefix}"DESCRICAO DA SECAO" IN ({', '.join([f"'{x}'" for x in lista_secaos])})'
 
     return query
 
 
-def subquery_os(lista_os):
+def subquery_os(lista_os, prefix=""):
     query = ""
     if "TODAS" not in lista_os:
-        query = f'AND "DESCRICAO DO SERVICO" IN ({', '.join([f"'{x}'" for x in lista_os])})'
+        query = f'AND {prefix}"DESCRICAO DO SERVICO" IN ({', '.join([f"'{x}'" for x in lista_os])})'
 
     return query
 
@@ -570,7 +604,7 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
     fig.update_layout(
         annotations=[
             dict(
-                text="Retrabalho por Garagem (% das OS)",
+                text="Retrabalho por oficina (% das OS)",
                 x=0.25,  # Posição X para o primeiro plot
                 y=1.05,  # Posição Y (em cima do plot)
                 xref="paper",
@@ -579,7 +613,7 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
                 font=dict(size=16),
             ),
             dict(
-                text="Correção de Primeira por Garagem (% das OS)",
+                text="Correção de primeira por oficina (% das OS)",
                 x=0.75,  # Posição X para o segundo plot
                 y=1.05,  # Posição Y (em cima do plot)
                 xref="paper",
@@ -707,7 +741,7 @@ def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias, lista_o
     fig.update_layout(
         annotations=[
             dict(
-                text="Retrabalho por Seção (% das OS)",
+                text="Retrabalho por seção (% das OS)",
                 x=0.25,  # Posição X para o primeiro plot
                 y=1.05,  # Posição Y (em cima do plot)
                 xref="paper",
@@ -716,7 +750,7 @@ def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias, lista_o
                 font=dict(size=16),
             ),
             dict(
-                text="Correção de Primeira por Seção (% das OS)",
+                text="Correção de primeira por seção (% das OS)",
                 x=0.75,  # Posição X para o segundo plot
                 y=1.05,  # Posição Y (em cima do plot)
                 xref="paper",
@@ -768,29 +802,105 @@ def atualiza_tabela_top_os_geral_retrabalho(datas, min_dias, lista_oficinas, lis
     subquery_secoes_str = subquery_secoes(lista_secaos)
     subquery_os_str = subquery_os(lista_os)
 
+    inner_subquery_oficinas_str = subquery_oficinas(lista_oficinas, "main.")
+    inner_subquery_secoes_str = subquery_secoes(lista_secaos, "main.")
+    inner_subquery_os_str = subquery_os(lista_os, "main.")
+
+    # query = f"""
+    #     SELECT
+    #         "DESCRICAO DA OFICINA",
+    #         "DESCRICAO DA SECAO",
+    #         "DESCRICAO DO SERVICO",
+    #         COUNT(*) as "TOTAL_OS",
+    #         100 * ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
+    #         100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA"
+    #     FROM
+    #         mat_view_retrabalho_{min_dias}_dias
+    #     WHERE
+    #         "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+    #         {subquery_oficinas_str}
+    #         {subquery_secoes_str}
+    #         {subquery_os_str}
+    #     GROUP BY
+    #         "DESCRICAO DA OFICINA", "DESCRICAO DA SECAO", "DESCRICAO DO SERVICO"
+    #     ORDER BY
+    #         "PERC_RETRABALHO" DESC;
+    # """
+
     query = f"""
+    WITH normaliza_problema AS (
         SELECT
             "DESCRICAO DA OFICINA",
-	        "DESCRICAO DA SECAO",
-            "DESCRICAO DO SERVICO",
-            COUNT(*) as "TOTAL_OS",
-	        100 * ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
-	        100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA"
-        FROM 
+            "DESCRICAO DA SECAO",
+            "DESCRICAO DO SERVICO" as servico,
+            "CODIGO DO VEICULO",
+            "problem_no"
+        FROM
             mat_view_retrabalho_{min_dias}_dias
         WHERE
             "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
             {subquery_oficinas_str}
             {subquery_secoes_str}
             {subquery_os_str}
-        GROUP BY 
-            "DESCRICAO DA OFICINA", "DESCRICAO DA SECAO", "DESCRICAO DO SERVICO"
-        ORDER BY 
-            "PERC_RETRABALHO" DESC;
+        GROUP BY
+            "DESCRICAO DA OFICINA",
+            "DESCRICAO DA SECAO",
+            "DESCRICAO DO SERVICO",
+            "CODIGO DO VEICULO",
+            "problem_no"
+    ),
+    os_problema AS (
+        SELECT
+            "DESCRICAO DA OFICINA",
+            "DESCRICAO DA SECAO",
+            servico,
+            COUNT(*) AS num_problema
+        FROM
+            normaliza_problema
+        GROUP BY
+            "DESCRICAO DA OFICINA",
+            "DESCRICAO DA SECAO",
+            servico
+    )
+    SELECT
+        main."DESCRICAO DA OFICINA",
+        main."DESCRICAO DA SECAO",
+        main."DESCRICAO DO SERVICO",
+        COUNT(*) AS "TOTAL_OS",
+        SUM(CASE WHEN main.retrabalho THEN 1 ELSE 0 END) AS "TOTAL_RETRABALHO",
+        SUM(CASE WHEN main.correcao THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO",
+        SUM(CASE WHEN main.correcao_primeira THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO_PRIMEIRA",
+        100 * ROUND(SUM(CASE WHEN main.retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
+        100 * ROUND(SUM(CASE WHEN main.correcao THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO",
+        100 * ROUND(SUM(CASE WHEN main.correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA",
+        COALESCE(op.num_problema, 0) AS "TOTAL_PROBLEMA"
+    FROM
+        mat_view_retrabalho_{min_dias}_dias main
+    LEFT JOIN
+        os_problema op
+    ON
+        main."DESCRICAO DA OFICINA" = op."DESCRICAO DA OFICINA"
+        AND main."DESCRICAO DA SECAO" = op."DESCRICAO DA SECAO"
+        AND main."DESCRICAO DO SERVICO" = op.servico
+    WHERE
+        main."DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+        {inner_subquery_oficinas_str}
+        {inner_subquery_secoes_str}
+        {inner_subquery_os_str}
+    GROUP BY
+        main."DESCRICAO DA OFICINA",
+        main."DESCRICAO DA SECAO",
+        main."DESCRICAO DO SERVICO",
+        op.num_problema
+    ORDER BY
+        "PERC_RETRABALHO" DESC;
     """
 
+    print(query)
     # Executa a query
     df = pd.read_sql(query, pgEngine)
+
+    df["REL_OS_PROBLEMA"] = round(df["TOTAL_OS"] / df["TOTAL_PROBLEMA"], 2)
 
     return df.to_dict("records")
 
@@ -823,31 +933,98 @@ def atualiza_tabela_top_colaboradores_geral_retrabalho(datas, min_dias, lista_of
     subquery_secoes_str = subquery_secoes(lista_secaos)
     subquery_os_str = subquery_os(lista_os)
 
+    inner_subquery_oficinas_str = subquery_oficinas(lista_oficinas, "main.")
+    inner_subquery_secoes_str = subquery_secoes(lista_secaos, "main.")
+    inner_subquery_os_str = subquery_os(lista_os, "main.")
+
+    # query = f"""
+    #     SELECT
+    #         "COLABORADOR QUE EXECUTOU O SERVICO",
+    #         COUNT(*) as "TOTAL_OS",
+    #         -- SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END) AS "TOTAL_RETRABALHO",
+    #         -- SUM(CASE WHEN correcao THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO",
+    #         -- SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO_PRIMEIRA",
+    #         100 * ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
+    #         -- 100 * ROUND(SUM(CASE WHEN correcao THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO",
+    #         100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA"
+    #     FROM
+    #         mat_view_retrabalho_{min_dias}_dias
+    #     WHERE
+    #         "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+    #         {subquery_oficinas_str}
+    #         {subquery_secoes_str}
+    #         {subquery_os_str}
+    #     GROUP BY
+    #         "COLABORADOR QUE EXECUTOU O SERVICO"
+    #     ORDER BY
+    #         "PERC_RETRABALHO" DESC;
+    # """
+
     query = f"""
+        WITH normaliza_problema AS (
+            SELECT
+                "COLABORADOR QUE EXECUTOU O SERVICO" AS colaborador,
+                "DESCRICAO DO SERVICO",
+                "CODIGO DO VEICULO",
+                "problem_no"
+            FROM
+                mat_view_retrabalho_{min_dias}_dias
+            WHERE
+                "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+                {subquery_oficinas_str}
+                {subquery_secoes_str}
+                {subquery_os_str}
+            GROUP BY
+                "COLABORADOR QUE EXECUTOU O SERVICO",
+                "DESCRICAO DO SERVICO",
+                "CODIGO DO VEICULO",
+                "problem_no"
+        ),
+        colaborador_problema AS (
+            SELECT 
+                colaborador, 
+                COUNT(*) AS num_problema
+            FROM 
+                normaliza_problema
+            GROUP BY 
+                colaborador
+        )
         SELECT
-            "COLABORADOR QUE EXECUTOU O SERVICO",
-            COUNT(*) as "TOTAL_OS",
-            -- SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END) AS "TOTAL_RETRABALHO",
-            -- SUM(CASE WHEN correcao THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO",
-            -- SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO_PRIMEIRA",
-	        100 * ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
-	        -- 100 * ROUND(SUM(CASE WHEN correcao THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO",
-	        100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA"
-        FROM 
-            mat_view_retrabalho_{min_dias}_dias
+            main."COLABORADOR QUE EXECUTOU O SERVICO",
+            COUNT(*) AS "TOTAL_OS",
+            SUM(CASE WHEN main.retrabalho THEN 1 ELSE 0 END) AS "TOTAL_RETRABALHO",
+            SUM(CASE WHEN main.correcao THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO",
+            SUM(CASE WHEN main.correcao_primeira THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO_PRIMEIRA",
+            100 * ROUND(SUM(CASE WHEN main.retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
+            100 * ROUND(SUM(CASE WHEN main.correcao THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO",
+            100 * ROUND(SUM(CASE WHEN main.correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA",
+            COALESCE(cp.num_problema, 0) AS "TOTAL_PROBLEMA"
+        FROM
+            mat_view_retrabalho_{min_dias}_dias main
+        LEFT JOIN
+            colaborador_problema cp
+            ON
+            main."COLABORADOR QUE EXECUTOU O SERVICO" = cp.colaborador
         WHERE
-            "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
-            {subquery_oficinas_str}
-            {subquery_secoes_str}
-            {subquery_os_str}
-        GROUP BY 
-            "COLABORADOR QUE EXECUTOU O SERVICO"
-        ORDER BY 
+            main."DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+            {inner_subquery_oficinas_str}
+            {inner_subquery_secoes_str}
+            {inner_subquery_os_str}
+        GROUP BY
+            main."COLABORADOR QUE EXECUTOU O SERVICO",
+            cp.num_problema
+        ORDER BY
             "PERC_RETRABALHO" DESC;
     """
 
     # Executa Query
+    print("-------------")
+    print(query)
+    print("-------------")
+
     df = pd.read_sql(query, pgEngine)
+
+    df["REL_OS_PROBLEMA"] = round(df["TOTAL_OS"] / df["TOTAL_PROBLEMA"], 2)
 
     # Adiciona label de nomes
     df["COLABORADOR QUE EXECUTOU O SERVICO"] = df["COLABORADOR QUE EXECUTOU O SERVICO"].astype(int)
