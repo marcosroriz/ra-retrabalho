@@ -448,7 +448,7 @@ layout = dbc.Container(
         ),
         dmc.Space(h=20),
         dag.AgGrid(
-            # enableEnterpriseModules=True,
+            enableEnterpriseModules=True,
             id="tabela-top-os-retrabalho-geral",
             columnDefs=tbl_top_os_geral_retrabalho,
             rowData=[],
