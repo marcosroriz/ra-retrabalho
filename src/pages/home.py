@@ -203,7 +203,7 @@ layout = dbc.Container(
                                             html.H1(
                                                 [
                                                     "Visão geral do\u00a0",
-                                                    html.Strong(" retrabalho"),
+                                                    html.Strong("retrabalho"),
                                                 ],
                                                 className="align-self-center",
                                             ),
