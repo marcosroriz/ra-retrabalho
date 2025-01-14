@@ -1,22 +1,32 @@
 import pandas as pd
+import traceback
 
 from db import PostgresSingleton
 
 class TripsEventService:
     def __init__(self):
         pgDB = PostgresSingleton.get_instance()
-        pgEngine = pgDB.get_engine()
+        self.pgEngine = pgDB.get_engine()
 
     
     def get_vehicles(self)->pd.DataFrame:
         '''Retorna veiculos do banco'''
-        query = '''
-        select distinct "Description" as veiculos
-        from veiculos_api va
-        where "Description" not like '%-%'
-        '''
-        df = pd.read_sql(query, pgEngine)
-        return df['veiculos'].tolist()
+        try: 
+            query = '''
+                SELECT DISTINCT "Description" AS veiculos
+                FROM veiculos_api
+                WHERE "Description" NOT LIKE %s
+            '''
+
+            # Parametro para o LIKE, passando o '%' diretamente
+            param = '%-%'
+
+            # Execute a consulta com pandas, passando o parâmetro na tupla
+            df = pd.read_sql(query, self.pgEngine, params=(param,))
+            return df['veiculos'].tolist()
+        except Exception as e:
+            print(e)
+            traceback.format_exc()
         
     def get_events(self, vehicle=None):
         '''Consulta os eventos no banco de dados com base no veículo.'''
@@ -30,7 +40,7 @@ class TripsEventService:
         left join veiculos_api va on tpe.asset_id = va."AssetId" 
         '''
         if vehicle:
-            query += f''' WHERE va."Description" = '{vehicle}' '''
-            df = pd.read_sql(query, pgEngine)
+            query += ''' WHERE va."Description" = %s'''
+            df = pd.read_sql(query, self.pgEngine, params=(vehicle,))
         return df
         

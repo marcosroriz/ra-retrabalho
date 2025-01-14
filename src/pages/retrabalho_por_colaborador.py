@@ -185,6 +185,175 @@ layout = dbc.Container(
         dbc.Row(dmc.Space(h=20)),
         # Graficos gerais
         html.Hr(),
+        # Indicadores
+        dbc.Row(
+            [
+                html.H4("Indicadores"),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            dbc.Card(
+                                [
+                                    dbc.CardBody(
+                                        dmc.Group(
+                                            [
+                                                dmc.Title(id="indicador-quantidade-servico", order=2),
+                                                DashIconify(
+                                                    icon="mdi:bomb",
+                                                    width=48,
+                                                    color="black",
+                                                ),
+                                            ],
+                                            justify="space-around",
+                                            mt="md",
+                                            mb="xs",
+                                        ),
+                                    ),
+                                    dbc.CardFooter("Total de OSs executadas"),
+                                ],
+                                class_name="card-box-shadow",
+                            ),
+                            md=4,
+                        ),
+                        dbc.Col(
+                            dbc.Card(
+                                [
+                                    dbc.CardBody(
+                                        dmc.Group(
+                                            [
+                                                dmc.Title(
+                                                    id="indicador-total-os-trabalho",
+                                                    order=2,
+                                                ),
+                                                DashIconify(
+                                                    icon="material-symbols:order-play-outline",
+                                                    width=48,
+                                                    color="black",
+                                                ),
+                                            ],
+                                            justify="space-around",
+                                            mt="md",
+                                            mb="xs",
+                                        ),
+                                    ),
+                                    dbc.CardFooter("Total de OSs executadas"),
+                                ],
+                                class_name="card-box-shadow",
+                            ),
+                            md=4,
+                        ),
+                        dbc.Col(
+                            dbc.Card(
+                                [
+                                    dbc.CardBody(
+                                        dmc.Group(
+                                            [
+                                                dmc.Title(id="indicador-relacao-problema-os", order=2),
+                                                DashIconify(
+                                                    icon="icon-park-solid:division",
+                                                    width=48,
+                                                    color="black",
+                                                ),
+                                            ],
+                                            justify="space-around",
+                                            mt="md",
+                                            mb="xs",
+                                        ),
+                                    ),
+                                    dbc.CardFooter("Média de OS / problema"),
+                                ],
+                                class_name="card-box-shadow",
+                            ),
+                            md=4,
+                        ),
+                    ]
+                ),
+                dbc.Row(dmc.Space(h=20)),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            dbc.Card(
+                                [
+                                    dbc.CardBody(
+                                        dmc.Group(
+                                            [
+                                                dmc.Title(
+                                                    id="indicador-porcentagem-prob-com-retrabalho",
+                                                    order=2,
+                                                ),
+                                                DashIconify(
+                                                    icon="game-icons:time-bomb",
+                                                    width=48,
+                                                    color="black",
+                                                ),
+                                            ],
+                                            justify="space-around",
+                                            mt="md",
+                                            mb="xs",
+                                        ),
+                                    ),
+                                    dbc.CardFooter("% de problemas com retrabalho (> 1 OS)"),
+                                ],
+                                class_name="card-box-shadow",
+                            ),
+                            md=4,
+                        ),
+                        dbc.Col(
+                            dbc.Card(
+                                [
+                                    dbc.CardBody(
+                                        dmc.Group(
+                                            [
+                                                dmc.Title(
+                                                    id="indicador-porcentagem-retrabalho",
+                                                    order=2,
+                                                ),
+                                                DashIconify(
+                                                    icon="tabler:reorder",
+                                                    width=48,
+                                                    color="black",
+                                                ),
+                                            ],
+                                            justify="space-around",
+                                            mt="md",
+                                            mb="xs",
+                                        ),
+                                    ),
+                                    dbc.CardFooter("% das OS são retrabalho"),
+                                ],
+                                class_name="card-box-shadow",
+                            ),
+                            md=4,
+                        ),
+                        dbc.Col(
+                            dbc.Card(
+                                [
+                                    dbc.CardBody(
+                                        dmc.Group(
+                                            [
+                                                dmc.Title(id="indicador-num-medio-dias-correcao", order=2),
+                                                DashIconify(
+                                                    icon="lucide:calendar-days",
+                                                    width=48,
+                                                    color="black",
+                                                ),
+                                            ],
+                                            justify="space-around",
+                                            mt="md",
+                                            mb="xs",
+                                        ),
+                                    ),
+                                    dbc.CardFooter("Média de dias até correção"),
+                                ],
+                                class_name="card-box-shadow",
+                            ),
+                            md=4,
+                        ),
+                    ]
+                ),
+            ]
+        ),
+        dbc.Row(dmc.Space(h=20)),
         dbc.Row(
             [
                 # Gráfico de Pizza
@@ -218,6 +387,54 @@ def obtem_dados_os_mecanico(id_mecanico):
     )
 
     return df_os_mecanico_query
+
+
+@callback(
+    Output("indicador-total-os-trabalho", "children"),
+    [
+        Input("input-lista-colaborador", "value"),
+        Input("input-intervalo-datas-colaborador", "value"),
+        Input("input-min-dias-colaborador", "value"),
+    ],
+)
+def dados_os_card(id_colaborador, datas, min_dias):
+    dados_vazios = {"df_os_mecanico": pd.DataFrame().to_dict("records"), "vazio": True}
+    
+    # Verifique se todos os inputs estão corretamente passados
+    print(f"id_colaborador: {id_colaborador}")
+    print(f"datas: {datas}")
+    print(f"min_dias: {min_dias}")
+
+    # Validação dos inputs
+    if not id_colaborador or not datas or len(datas) != 2 or None in datas or min_dias is None or min_dias < 1:
+        return ''
+
+    # Obtem os dados de retrabalho
+    df_os_mecanico = obtem_dados_os_mecanico(id_colaborador)
+
+    if df_os_mecanico.empty:
+        return "Nenhuma OS encontrada para esse colaborador."
+
+    # Filtrar as datas
+    try:
+        inicio = pd.to_datetime(datas[0])
+        fim = pd.to_datetime(datas[1])
+    except Exception as e:
+        return f"Erro ao converter datas: {e}"
+
+    # Filtrar o DataFrame baseado no intervalo de datas
+    df_os_mecanico = df_os_mecanico[
+        (df_os_mecanico["DATA INICIO SERVICO"] >= inicio) & (df_os_mecanico["DATA INICIO SERVICO"] <= fim)
+    ]
+
+
+
+    if df_os_mecanico.shape[0] == 0:
+        return "Nenhuma OS foi trabalhada neste período."
+
+    # Retorna o número total de OS trabalhadas
+    return f"{df_os_mecanico.shape[0]} OS trabalhadas"
+
 
 
 @callback(

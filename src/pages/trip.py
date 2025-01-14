@@ -4,33 +4,10 @@ import plotly.graph_objects as go
 from datetime import datetime
 import pandas as pd
 import dash
-from db import PostgresSingleton
 
-pgDB = PostgresSingleton.get_instance()
-pgEngine = pgDB.get_engine()
+from services.trips_event import TripsEventService
 
- 
-df_veiculos = pd.read_sql('''
-    select distinct "Description" as veiculos
-    from veiculos_api va
-    where "Description" not like '%-%'
-    ''', pgEngine)['veiculos'].tolist()
-    
-def get_events( vehicle=50240):
-    '''Consulta os eventos no banco de dados com base no veículo.'''
-    query = '''
-    select 
-    tea."Description" as evento,
-    va."Description" as veiculos,
-    tpe.dia_evento:: timestamp as data_evento
-    from trip_possui_evento tpe 
-    left join tipos_eventos_api tea on tpe.event_type_id = tea."EventTypeId"
-    left join veiculos_api va on tpe.asset_id = va."AssetId" 
-    '''
-    if vehicle:
-        query += f''' WHERE va."Description" = '{vehicle}' '''
-        df = pd.read_sql(query, pgEngine)
-    return df
+db = TripsEventService()
 
 dash.register_page(__name__, path='/timeline', icon="material-symbols:timeline")
 
@@ -69,8 +46,8 @@ def generate_timeline(data):
         ))
 
     fig.update_layout(
-        height=600,  # Aumentar altura
-        width=1000,  # Aumentar largura
+        height=800,  # Aumentar altura
+        width=1500,  # Aumentar largura
         yaxis=dict(title="Viagens", automargin=True),  # Alterar título do eixo y
         xaxis=dict(title="Horário", type="date", tickformat="%H:%M"),
         margin=dict(l=50, r=50, t=30, b=50),
@@ -99,7 +76,17 @@ layout = html.Div([
     placeholder="Selecione eventos",  # Texto exibido no dropdown
     className="mb-3"
 ),
-    dcc.Graph(id='timeline-graph')
+     # Adicionar o estilo para centralizar o gráfico
+    html.Div(
+        dcc.Graph(id='timeline-graph'),
+        style={
+            'display': 'flex',
+            'justify-content': 'center',
+            'align-items': 'center',
+            'height': '100vh',  # Fazer com que ocupe toda a altura da tela
+            'width': '100%'  # Garantir que ocupe toda a largura disponível
+        }
+    )
 ])
 
 
@@ -119,7 +106,7 @@ def update_components(selected_vehicle, selected_date, selected_events):
 
     # Consultar os veículos
     try:
-        vehicles = df_veiculos
+        vehicles = db.get_vehicles()
     except Exception as e:
         vehicles = []
         print(f"Erro ao buscar veículos: {e}")
@@ -132,7 +119,7 @@ def update_components(selected_vehicle, selected_date, selected_events):
 
     # Consultar eventos para o veículo selecionado
     try:
-        events = get_events(selected_vehicle)
+        events = db.get_events(selected_vehicle)
         events['data_evento'] = pd.to_datetime(events['data_evento'], format='%Y-%m-%d %H:%M:%S')
     except Exception as e:
         print(f"Erro ao buscar eventos: {e}")
