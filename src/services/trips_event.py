@@ -28,7 +28,7 @@ class TripsEventService:
             print(e)
             traceback.format_exc()
         
-    def get_events(self, vehicle=None):
+    def get_events(self, vehicle=50334):
         '''Consulta os eventos no banco de dados com base no veículo.'''
         query = '''
         select 

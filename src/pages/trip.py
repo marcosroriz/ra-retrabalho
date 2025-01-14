@@ -42,54 +42,89 @@ def generate_timeline(data):
                 f"Viagem: {event['evento']}<br>"
                 f"Data e Hora: {event['data_evento'].strftime('%d/%m/%Y %H:%M')}<br>"  # Formatação de data e hora
                 f"Veículo: {event.get('veiculos', 'Não especificado')}"
-            )
+            ), showlegend=False
         ))
 
     fig.update_layout(
         height=800,  # Aumentar altura
         width=1500,  # Aumentar largura
-        yaxis=dict(title="Viagens", automargin=True),  # Alterar título do eixo y
+        yaxis=dict(automargin=True),  # Alterar título do eixo y
         xaxis=dict(title="Horário", type="date", tickformat="%H:%M"),
         margin=dict(l=50, r=50, t=30, b=50),
-        title="Timeline de Eventos"
     )
 
     return fig
 
+# Layout da página
 layout = html.Div([
+    # Dropdown de Veículo
     dcc.Dropdown(
         id='vehicle-dropdown',
         placeholder="Selecione um veículo",
-        className="mb-3"
+        className="mb-3",
+        value=None,
+        style={
+            'border-radius': '8px',  # Borda arredondada
+            'background-color': '#f0f0f0',  # Cor de fundo suave
+            'padding': '3px',
+            'width': '100%',  # Ocupa toda a largura disponível
+            'font-size': '16px'
+        }
     ),
+    
+    # DatePicker para data
     dcc.DatePickerSingle(
         id='date-picker',
         placeholder="Selecione uma data",
         className="mb-3",
-        display_format="DD/MM/YYYY"  # Formato desejado
+        display_format="DD/MM/YYYY",
+        date=datetime.now().replace(day=8).strftime('%Y-%m-%d'),
+        style={
+            'border-radius': '8px',
+            'background-color': '#f0f0f0',
+            'padding': '10px',
+            'width': '100%',
+        }
     ),
+    
+    # Dropdown para filtro de eventos
     dcc.Dropdown(
-    id='event-filter',
-    options=[],  # As opções serão carregadas dinamicamente
-    value=[],    # Nenhum evento selecionado por padrão
-    multi=True,  # Permite selecionar múltiplos eventos
-    placeholder="Selecione eventos",  # Texto exibido no dropdown
-    className="mb-3"
-),
-     # Adicionar o estilo para centralizar o gráfico
+        id='event-filter',
+        options=[],  # As opções serão carregadas dinamicamente
+        value=[],    # Nenhum evento selecionado por padrão
+        multi=True,  # Permite selecionar múltiplos eventos
+        placeholder="Selecione eventos",
+        className="mb-3",
+        style={
+            'border-radius': '8px',
+            'background-color': '#f0f0f0',
+            'padding': '10px',
+            'width': '100%',
+        }
+    ),
+    
+    # Título da Timeline
+    html.Div(
+        html.H2("Timeline de Eventos", style={'textAlign': 'center', 'marginTop': '20px', 'color': '#333'}),
+        style={'marginBottom': '20px'}
+    ),
+    
+    # Gráfico centralizado
     html.Div(
         dcc.Graph(id='timeline-graph'),
         style={
             'display': 'flex',
             'justify-content': 'center',
             'align-items': 'center',
-            'height': '100vh',  # Fazer com que ocupe toda a altura da tela
-            'width': '100%'  # Garantir que ocupe toda a largura disponível
+            'height': '80vh',  # Ajustar altura para acomodar o título
+            'width': '100%',
+            'background-color': '#fafafa',  # Fundo suave
+            'border-radius': '15px',  # Borda arredondada no gráfico
         }
     )
 ])
 
-
+# Callback para atualizar os componentes
 @callback(
     [
         Output('vehicle-dropdown', 'options'),
@@ -103,7 +138,6 @@ layout = html.Div([
     ]
 )
 def update_components(selected_vehicle, selected_date, selected_events):
-
     # Consultar os veículos
     try:
         vehicles = db.get_vehicles()
@@ -112,6 +146,9 @@ def update_components(selected_vehicle, selected_date, selected_events):
         print(f"Erro ao buscar veículos: {e}")
 
     dropdown_options = [{'label': vehicle, 'value': vehicle} for vehicle in vehicles]
+    
+    if not selected_vehicle:
+        selected_vehicle = "50334"
 
     # Caso nenhum veículo ou data seja selecionado, retornar apenas os veículos no dropdown
     if not selected_vehicle or not selected_date:
