@@ -4,7 +4,9 @@ from db import PostgresSingleton
 
 class TripsEventService:
     def __init__(self):
-        self.conn = PostgresSingleton().get_instance()
+        pgDB = PostgresSingleton.get_instance()
+        pgEngine = pgDB.get_engine()
+
     
     def get_vehicles(self)->pd.DataFrame:
         '''Retorna veiculos do banco'''
@@ -13,7 +15,7 @@ class TripsEventService:
         from veiculos_api va
         where "Description" not like '%-%'
         '''
-        df = pd.read_sql(query, self.conn.get_engine())
+        df = pd.read_sql(query, pgEngine)
         return df['veiculos'].tolist()
         
     def get_events(self, vehicle=None):
@@ -29,6 +31,6 @@ class TripsEventService:
         '''
         if vehicle:
             query += f''' WHERE va."Description" = '{vehicle}' '''
-            df = pd.read_sql(query, self.conn.get_engine())
+            df = pd.read_sql(query, pgEngine)
         return df
         
