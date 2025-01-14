@@ -379,7 +379,6 @@ def obtem_dados_os_mecanico(id_mecanico):
         WHERE od."COLABORADOR QUE EXECUTOU O SERVICO" = {id_mecanico}
     """
     df_os_mecanico_query = pd.read_sql_query(query, pgEngine)
-
     # Tratamento de datas
     df_os_mecanico_query["DATA INICIO SERVICO"] = pd.to_datetime(df_os_mecanico_query["DATA INICIO SERVIÇO"])
     df_os_mecanico_query["DATA DE FECHAMENTO DO SERVICO"] = pd.to_datetime(
@@ -400,10 +399,6 @@ def obtem_dados_os_mecanico(id_mecanico):
 def dados_os_card(id_colaborador, datas, min_dias):
     dados_vazios = {"df_os_mecanico": pd.DataFrame().to_dict("records"), "vazio": True}
     
-    # Verifique se todos os inputs estão corretamente passados
-    print(f"id_colaborador: {id_colaborador}")
-    print(f"datas: {datas}")
-    print(f"min_dias: {min_dias}")
 
     # Validação dos inputs
     if not id_colaborador or not datas or len(datas) != 2 or None in datas or min_dias is None or min_dias < 1:
@@ -427,10 +422,9 @@ def dados_os_card(id_colaborador, datas, min_dias):
         (df_os_mecanico["DATA INICIO SERVICO"] >= inicio) & (df_os_mecanico["DATA INICIO SERVICO"] <= fim)
     ]
 
-
-
     if df_os_mecanico.shape[0] == 0:
-        return "Nenhuma OS foi trabalhada neste período."
+        return''
+    
 
     # Retorna o número total de OS trabalhadas
     return f"{df_os_mecanico.shape[0]} OS trabalhadas"
