@@ -196,7 +196,7 @@ auth = dash_auth.BasicAuth(app, dict_users, secret_key=SECRET_KEY)
 ##############################################################################
 if __name__ == "__main__":
     APP_HOST = os.getenv("HOST", "0.0.0.0")
-    APP_DEBUG = bool(os.getenv("DEBUG", "True")).lower() in ("true", "1", "yes")
+    APP_DEBUG = str(os.getenv("DEBUG", "True")).lower() in ("true", "1", "yes")
     APP_PORT = os.getenv("PORT", 10000)
 
     PROFILE = os.getenv("PROFILE", "False").lower() in ("true", "1", "yes")
