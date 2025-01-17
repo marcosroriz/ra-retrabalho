@@ -86,6 +86,7 @@ df_mecanicos_todos["LABEL_COLABORADOR"] = (
 # Ordena os colaboradores
 df_mecanicos_todos = df_mecanicos_todos.sort_values("LABEL_COLABORADOR")
 
+print(df_mecanicos_todos)
 
 ##############################################################################
 # Registro da página #########################################################

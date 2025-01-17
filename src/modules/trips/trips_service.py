@@ -3,7 +3,7 @@ import traceback
 
 from db import PostgresSingleton
 
-class TripsEventService:
+class TripsService:
     def __init__(self):
         pgDB = PostgresSingleton.get_instance()
         self.pgEngine = pgDB.get_engine()
