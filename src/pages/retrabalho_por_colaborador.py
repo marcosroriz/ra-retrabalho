@@ -86,7 +86,6 @@ df_mecanicos_todos["LABEL_COLABORADOR"] = (
 # Ordena os colaboradores
 df_mecanicos_todos = df_mecanicos_todos.sort_values("LABEL_COLABORADOR")
 
-print(df_mecanicos_todos)
 
 ##############################################################################
 # Registro da página #########################################################
@@ -189,123 +188,120 @@ layout = dbc.Container(
         # Indicadores
         dbc.Row(
             [
-                html.H4("Indicadores"),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        dmc.Group(
-                                            [
-                                                dmc.Title(id="indicador-quantidade-servico", order=2),
-                                                DashIconify(
-                                                    icon="mdi:bomb",
-                                                    width=48,
-                                                    color="black",
-                                                ),
-                                            ],
-                                            justify="space-around",
-                                            mt="md",
-                                            mb="xs",
+                html.H4("Indicadores", style={"text-align": "center", "margin-bottom": "20px", 'font-size': '45px'}),
+        dbc.Row(
+            [
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(id="indicador-quantidade-servico", order=2),
+                                        DashIconify(
+                                            icon="mdi:bomb",
+                                            width=48,
+                                            color="black",
                                         ),
-                                    ),
-                                    dbc.CardFooter("Total de servicos realizados"),
-                                ],
-                                class_name="card-box-shadow",
+                                    ],
+                                    justify="center",  # Centralize conteúdo no card
+                                    mt="md",
+                                    mb="xs",
+                                ),
                             ),
-                            md=4,
-                        ),
-                        dbc.Col(
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        dmc.Group(
-                                            [
-                                                dmc.Title(
-                                                    id="indicador-total-os-trabalho",
-                                                    order=2,
-                                                ),
-                                                DashIconify(
-                                                    icon="material-symbols:order-play-outline",
-                                                    width=48,
-                                                    color="black",
-                                                ),
-                                            ],
-                                            justify="space-around",
-                                            mt="md",
-                                            mb="xs",
-                                        ),
-                                    ),
-                                    dbc.CardFooter("Total de OSs executadas"),
-                                ],
-                                class_name="card-box-shadow",
-                            ),
-                            md=4,
-                        ),
-                    ]
+                            dbc.CardFooter("Total de serviços realizados"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=4,
+                    style={"margin-bottom": "20px"},  # Adicione espaçamento inferior
                 ),
-                dbc.Row(dmc.Space(h=20)),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        dmc.Group(
-                                            [
-                                                dmc.Title(
-                                                    id="indicador-correcao-de-primeira",
-                                                    order=2,
-                                                ),
-                                                DashIconify(
-                                                    icon="game-icons:time-bomb",
-                                                    width=48,
-                                                    color="black",
-                                                ),
-                                            ],
-                                            justify="space-around",
-                                            mt="md",
-                                            mb="xs",
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(id="indicador-total-os-trabalho", order=2),
+                                        DashIconify(
+                                            icon="material-symbols:order-play-outline",
+                                            width=48,
+                                            color="black",
                                         ),
-                                    ),
-                                    dbc.CardFooter("OSs com correção de primeira"),
-                                ],
-                                class_name="card-box-shadow",
+                                    ],
+                                    justify="center",
+                                    mt="md",
+                                    mb="xs",
+                                ),
                             ),
-                            md=4,
-                        ),
-                        dbc.Col(
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        dmc.Group(
-                                            [
-                                                dmc.Title(
-                                                    id="indicador-teste",
-                                                    order=2,
-                                                ),
-                                                DashIconify(
-                                                    icon="tabler:reorder",
-                                                    width=48,
-                                                    color="black",
-                                                ),
-                                            ],
-                                            justify="space-around",
-                                            mt="md",
-                                            mb="xs",
-                                        ),
-                                    ),
-                                    dbc.CardFooter("% das OS são retrabalho"),
-                                ],
-                                class_name="card-box-shadow",
-                            ),
-                            md=4,
-                        ),
-                    ]
+                            dbc.CardFooter("Total de OSs executadas"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=4,
+                    style={"margin-bottom": "20px"},
                 ),
-            ]
+            ],
+            justify="center",  # Centralize a linha inteira
         ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(id="indicador-correcao-de-primeira", order=2),
+                                        DashIconify(
+                                            icon="game-icons:time-bomb",
+                                            width=48,
+                                            color="black",
+                                        ),
+                                    ],
+                                    justify="center",
+                                    mt="md",
+                                    mb="xs",
+                                ),
+                            ),
+                            dbc.CardFooter("OSs com correção de primeira"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=4,
+                    style={"margin-bottom": "20px"},
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(id="indicador-teste", order=2),
+                                        DashIconify(
+                                            icon="tabler:reorder",
+                                            width=48,
+                                            color="black",
+                                        ),
+                                    ],
+                                    justify="center",
+                                    mt="md",
+                                    mb="xs",
+                                ),
+                            ),
+                            dbc.CardFooter("% das OS são retrabalho"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=4,
+                    style={"margin-bottom": "20px"},
+                ),
+            ],
+            justify="center",
+        ),
+    ],
+    style={"margin-top": "20px", "margin-bottom": "20px"},
+    ),
         dbc.Row(dmc.Space(h=20)),
         dbc.Row(
             [

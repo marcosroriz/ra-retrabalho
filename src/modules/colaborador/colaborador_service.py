@@ -18,7 +18,6 @@ class ColaboradorService:
                 """,
                 self.pgEngine
             )
-            print(df_mecanicos)
             return df_mecanicos
         except Exception as e:
             return pd.DataFrame()
@@ -42,7 +41,6 @@ class ColaboradorService:
 
             # Ordena os colaboradores
             df_mecanicos_todos = df_mecanicos_todos.sort_values("LABEL_COLABORADOR")
-            print(df_mecanicos_todos)
             return df_mecanicos_todos
         except Exception as e:
             return pd.DataFrame()
