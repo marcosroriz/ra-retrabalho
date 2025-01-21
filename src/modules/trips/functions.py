@@ -39,7 +39,7 @@ def generate_timeline(data):
 
     fig.update_layout(
         height=800,  # Aumentar altura
-        width=1500,  # Aumentar largura
+        width=1800,  # Aumentar largura
         yaxis=dict(automargin=True),  # Alterar título do eixo y
         xaxis=dict(title="Horário", type="date", tickformat="%H:%M"),
         margin=dict(l=50, r=50, t=30, b=50),
