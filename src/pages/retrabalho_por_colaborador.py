@@ -43,17 +43,16 @@ from db import PostgresSingleton
 pgDB = PostgresSingleton.get_instance()
 pgEngine = pgDB.get_engine()
 
+from modules.colaborador.colaborador_service import ColaboradorService
+
+colab = ColaboradorService()
+
 
 ##############################################################################
 # Obtêm os dados dos colaboradores
 ##############################################################################
 # Obtem os dados dos mecânicos informados pela RA
-df_mecanicos = pd.read_sql(
-    """
-    SELECT * FROM colaboradores_frotas_os
-    """,
-    pgEngine,
-)
+df_mecanicos = colab.get_info_colaboradores()
 
 # Ajusta espaços no nome do colaborador
 df_mecanicos["LABEL_COLABORADOR"] = df_mecanicos["nome_colaborador"].apply(
@@ -277,7 +276,7 @@ layout = dbc.Container(
                             dbc.CardBody(
                                 dmc.Group(
                                     [
-                                        dmc.Title(id="indicador-teste", order=2),
+                                        dmc.Title(id="indicador-retrabalho", order=2),
                                         DashIconify(
                                             icon="tabler:reorder",
                                             width=48,
@@ -698,7 +697,7 @@ def quantidade_correcao_primeira(id_colaborador, datas, min_dias):
 ###
 ####
 @callback(
-    Output("indicador-teste", "children"),
+    Output("indicador-retrabalho", "children"),
     [
         Input("input-lista-colaborador", "value"),
         Input("input-intervalo-datas-colaborador", "value"),
@@ -833,3 +832,27 @@ def computa_atuacao_mecanico_tipo_os(data):
     )
 
     return fig
+
+@callback(
+    Output("graph-retrabalho-ano", "figure"), 
+    [
+        Input("ano-retrabalho", "value"), 
+        Input("input-lista-colaborador", "value"),
+        Input("input-min-dias-colaborador", "value"),
+    ]
+)
+def grafico_retrabalho_mes(id_colaborador, min_dias, ano):
+    '''plota grafico de evolução de retrabalho por ano'''
+    dados_vazios = {"df_os_mecanico": pd.DataFrame().to_dict("records"), "vazio": True}
+    # Validação dos inputs
+    if (id_colaborador is None) or (ano is None or not ano or None in ano) or (min_dias is None or min_dias < 1):
+        return ''
+    
+
+    df_os_mecanico = obtem_dados_os_mecanico(id_colaborador)
+    
+    df_os_analise = obtem_dados_os_sql(id_colaborador, df_os_mecanico['DESCRICAO DO SERVICO'].tolist(), inicio, fim, min_dias)
+    
+    df_relatorio = obtem_estatistica_retrabalho_sql(df_os_analise, min_dias)
+    
+    correcao = df_relatorio['PERC_RETRABALHO'].astype(int).sum()
