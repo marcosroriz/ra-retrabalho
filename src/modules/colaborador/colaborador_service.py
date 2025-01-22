@@ -322,7 +322,7 @@ class ColaboradorService:
         df_estatistica["PERC_CORRECOES_TARDIAS"] = 100 * (
             df_estatistica["TOTAL_DE_CORRECOES_TARDIAS"] / df_estatistica["TOTAL_DE_OS"]
         )
-        print(df_estatistica.columns)
+        
         return df_estatistica
 
     def obtem_dados_os_mecanico(self, id_mecanico: str):

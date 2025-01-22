@@ -731,7 +731,7 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
         mat_view_retrabalho_{min_dias}_dias
     WHERE
         "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
-        {subquery_oficinas_str}
+        {subquery_oficinas_str} 
         {subquery_secoes_str}
         {subquery_os_str}
     GROUP BY

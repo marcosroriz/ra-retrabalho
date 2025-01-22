@@ -154,8 +154,17 @@ layout = dbc.Container(
                         [
                             html.Div(
                                 [
-                                    dbc.Label("Min. dias para Retrabalho"),
-                                    dmc.NumberInput(id="input-min-dias-colaborador", value=30, min=1, step=1),
+                                    dbc.Label("Tempo (em dias) entre OS para retrabalho"),
+                                    dcc.Dropdown(
+                                        id="input-min-dias-colaborador",
+                                        options=[
+                                            {"label": "10 dias", "value": 10},
+                                            {"label": "15 dias", "value": 15},
+                                            {"label": "30 dias", "value": 30},
+                                        ],
+                                        placeholder="Período em dias",
+                                        value=10,
+                                    ),
                                 ],
                                 className="dash-bootstrap",
                             ),
@@ -311,124 +320,75 @@ layout = dbc.Container(
 
 
 @callback(
-    Output("indicador-total-os-trabalho", "children"),
+    [
+        Output("indicador-total-os-trabalho", "children"),
+        Output("indicador-quantidade-servico", "children"),
+        Output("indicador-correcao-de-primeira", "children"),
+        Output("indicador-retrabalho", "children"),
+    ],
+    
     [
         Input("input-lista-colaborador", "value"),
         Input("input-intervalo-datas-colaborador", "value"),
+        Input("input-min-dias-colaborador", "value"),
     ],
     running=[(Output("loading-overlay", "visible"), True, False)],
 )
-def total_os_trabalhada(id_colaborador, datas):
-    dados_vazios = {"df_os_mecanico": pd.DataFrame().to_dict("records"), "vazio": True}
-   
-    if not id_colaborador or not datas or len(datas) != 2 or None:
-        return ''
-
-    df_os_mecanico = colab.obtem_dados_os_mecanico(id_colaborador)
-
-    if df_os_mecanico.empty:
-        return "Nenhuma OS encontrada para esse colaborador."
-
+def calcular_indicadores(id_colaborador, datas, min_dias):
+    # Validação dos inputs
+    if (id_colaborador is None) or (datas is None or not datas or None in datas) or (min_dias is None or min_dias < 1):
+        return '', '', '', ''
     
     inicio = pd.to_datetime(datas[0])
     fim = pd.to_datetime(datas[1])
 
-    df_os_mecanico = df_os_mecanico[
-        (df_os_mecanico["DATA INICIO SERVICO"] >= inicio) & (df_os_mecanico["DATA INICIO SERVICO"] <= fim)
-    ]
-
-    if df_os_mecanico.shape[0] == 0:
-        return 'Nenhuma Os realizada'
-    return f"{df_os_mecanico.shape[0]} OSs trabalhadas"
-
-
-@callback(
-    Output("indicador-quantidade-servico", "children"),
-    [
-        Input("input-lista-colaborador", "value"),
-        Input("input-intervalo-datas-colaborador", "value"),
-    ],
-)
-def quantidade_os_servico(id_colaborador, datas):
-    dados_vazios = {"df_os_mecanico": pd.DataFrame().to_dict("records"), "vazio": True}
-    # Validação dos inputs
-    if not id_colaborador or not datas or len(datas) != 2 or None:
-        return ''
-
+    # Obtem os dados do colaborador
     df_os_mecanico = colab.obtem_dados_os_mecanico(id_colaborador)
 
     if df_os_mecanico.empty:
-        return "Nenhuma OS encontrada para esse colaborador."
+        return (
+            "Nenhuma OS encontrada para esse colaborador.",
+            "Nenhuma OS encontrada para esse colaborador.",
+            'Nenhuma OS encontrada para esse colaborador.',
+            'Nenhuma OS encontrada para esse colaborador.',
+        )
 
-    inicio = pd.to_datetime(datas[0])
-    fim = pd.to_datetime(datas[1])
-
+    # Filtra as OSs pelo intervalo de datas
     df_os_mecanico = df_os_mecanico[
         (df_os_mecanico["DATA INICIO SERVICO"] >= inicio) & (df_os_mecanico["DATA INICIO SERVICO"] <= fim)
     ]
+
+    if df_os_mecanico.empty:
+        return (
+            "Nenhuma OS realizada no período selecionado.",
+            "Nenhuma OS realizada no período selecionado.",
+            'Nenhuma OS realizada no período selecionado.',
+            'Nenhuma OS realizada no período selecionado.',
+        )
+
+    # Indicador 1: Total de OSs trabalhadas
+    total_os = f"{df_os_mecanico.shape[0]} OSs trabalhadas"
+
+    # Indicador 2: Quantidade de serviços únicos realizados
     servicos_diferentes = len(df_os_mecanico['DESCRICAO DO SERVICO'].value_counts().index)
-    
-    return f"{str(servicos_diferentes)} Serviços Realizados"
+    quantidade_servicos = f"{servicos_diferentes} Serviços Realizados"
 
-#####
-@callback(
-    Output("indicador-correcao-de-primeira", "children"),
-    [
-        Input("input-lista-colaborador", "value"),
-        Input("input-intervalo-datas-colaborador", "value"),
-        Input("input-min-dias-colaborador", "value"),
-    ],
-)
-def quantidade_correcao_primeira(id_colaborador, datas, min_dias):
-    dados_vazios = {"df_os_mecanico": pd.DataFrame().to_dict("records"), "vazio": True}
-    # Validação dos inputs
-    if (id_colaborador is None) or (datas is None or not datas or None in datas) or (min_dias is None or min_dias < 1):
-        return ''
-    
-    inicio = pd.to_datetime(datas[0])
-    fim = pd.to_datetime(datas[1])
+    # Indicadores de correção de primeira e retrabalho
+    df_os_analise = colab.obtem_dados_os_sql(
+        id_colaborador, df_os_mecanico['DESCRICAO DO SERVICO'].tolist(), inicio, fim, min_dias
+    )
 
-    df_os_mecanico = colab.obtem_dados_os_mecanico(id_colaborador)
-    
-    df_os_analise = colab.obtem_dados_os_sql(id_colaborador, df_os_mecanico['DESCRICAO DO SERVICO'].tolist(), inicio, fim, min_dias)
-    
     df_relatorio = colab.obtem_estatistica_retrabalho_sql(df_os_analise, min_dias)
-    
-    correcao = df_relatorio['PERC_CORRECOES_DE_PRIMEIRA'].astype(int).sum()
 
-    
-    return f"{str(correcao)}% correções de primeira"
+    if not df_relatorio.empty:
+        correcao_primeira = f"{df_relatorio['PERC_CORRECOES_DE_PRIMEIRA'].astype(int).sum()}% correções de primeira"
+        retrabalho = f"{df_relatorio['PERC_RETRABALHO'].astype(int).sum()}% de retrabalho"
+    else:
+        correcao_primeira = "Dados insuficientes para calcular correções de primeira"
+        retrabalho = "Dados insuficientes para calcular retrabalho"
 
+    return total_os, quantidade_servicos, correcao_primeira, retrabalho
 
-###
-####
-@callback(
-    Output("indicador-retrabalho", "children"),
-    [
-        Input("input-lista-colaborador", "value"),
-        Input("input-intervalo-datas-colaborador", "value"),
-        Input("input-min-dias-colaborador", "value"),
-    ],
-)
-def quantidade_retrabalho(id_colaborador, datas, min_dias):
-    dados_vazios = {"df_os_mecanico": pd.DataFrame().to_dict("records"), "vazio": True}
-    # Validação dos inputs
-    if (id_colaborador is None) or (datas is None or not datas or None in datas) or (min_dias is None or min_dias < 1):
-        return ''
-    
-    inicio = pd.to_datetime(datas[0])
-    fim = pd.to_datetime(datas[1])
-
-    df_os_mecanico = colab.obtem_dados_os_mecanico(id_colaborador)
-    
-    df_os_analise =colab.obtem_dados_os_sql(id_colaborador, df_os_mecanico['DESCRICAO DO SERVICO'].tolist(), inicio, fim, min_dias)
-    
-    df_relatorio = colab.obtem_estatistica_retrabalho_sql(df_os_analise, min_dias)
-    
-    correcao = df_relatorio['PERC_RETRABALHO'].astype(int).sum()
-
-    
-    return f"{str(correcao)}% de retrabalho"
 
 
 @callback(
