@@ -240,6 +240,7 @@ layout = dbc.Container(
             ],
             justify="center",  # Centralize a linha inteira
         ),
+        
         dbc.Row(
             [
                 dbc.Col(
@@ -298,6 +299,15 @@ layout = dbc.Container(
     ],
     style={"margin-top": "20px", "margin-bottom": "20px"},
     ),
+        dmc.Space(h=40),
+        dbc.Row(
+            [
+                dbc.Col(DashIconify(icon="fluent:arrow-trending-text-20-filled", width=45), width="auto"),
+                dbc.Col(html.H4("Evolução das Métricas: Retrabalho e Correção de Primeira por mês", className="align-self-center"), width=True),
+            ],
+            align="center",
+        ),
+        dcc.Graph(id="graph-evolucao-retrabalho-por-mes"),
         dbc.Row(dmc.Space(h=20)),
         dbc.Row(
             [
@@ -326,7 +336,6 @@ layout = dbc.Container(
         Output("indicador-correcao-de-primeira", "children"),
         Output("indicador-retrabalho", "children"),
     ],
-    
     [
         Input("input-lista-colaborador", "value"),
         Input("input-intervalo-datas-colaborador", "value"),
@@ -335,8 +344,10 @@ layout = dbc.Container(
     running=[(Output("loading-overlay", "visible"), True, False)],
 )
 def calcular_indicadores(id_colaborador, datas, min_dias):
+    
+
     # Validação dos inputs
-    if (id_colaborador is None) or (datas is None or not datas or None in datas) or (min_dias is None or min_dias < 1):
+    if not id_colaborador or not datas or any(d is None for d in datas) or not isinstance(min_dias, int) or min_dias < 1:
         return '', '', '', ''
     
     inicio = pd.to_datetime(datas[0])
@@ -344,7 +355,6 @@ def calcular_indicadores(id_colaborador, datas, min_dias):
 
     # Obtem os dados do colaborador
     df_os_mecanico = colab.obtem_dados_os_mecanico(id_colaborador)
-
     if df_os_mecanico.empty:
         return (
             "Nenhuma OS encontrada para esse colaborador.",
@@ -352,6 +362,9 @@ def calcular_indicadores(id_colaborador, datas, min_dias):
             'Nenhuma OS encontrada para esse colaborador.',
             'Nenhuma OS encontrada para esse colaborador.',
         )
+
+    # Converte a coluna de datas
+    df_os_mecanico["DATA INICIO SERVICO"] = pd.to_datetime(df_os_mecanico["DATA INICIO SERVICO"], errors="coerce")
 
     # Filtra as OSs pelo intervalo de datas
     df_os_mecanico = df_os_mecanico[
@@ -369,20 +382,21 @@ def calcular_indicadores(id_colaborador, datas, min_dias):
     # Indicador 1: Total de OSs trabalhadas
     total_os = f"{df_os_mecanico.shape[0]} OSs trabalhadas"
 
+    # Obtém análise estatística
+    df_os_analise = colab.obtem_estatistica_retrabalho_sql(
+        datas=datas, id_colaborador=id_colaborador, min_dias=min_dias
+    )
+
     # Indicador 2: Quantidade de serviços únicos realizados
-    servicos_diferentes = len(df_os_mecanico['DESCRICAO DO SERVICO'].value_counts().index)
+    servicos_diferentes = len(df_os_analise['DESCRICAO DO SERVICO'].value_counts().index)
     quantidade_servicos = f"{servicos_diferentes} Serviços Realizados"
 
     # Indicadores de correção de primeira e retrabalho
-    df_os_analise = colab.obtem_dados_os_sql(
-        id_colaborador, df_os_mecanico['DESCRICAO DO SERVICO'].tolist(), inicio, fim, min_dias
-    )
-
-    df_relatorio = colab.obtem_estatistica_retrabalho_sql(df_os_analise, min_dias)
-
-    if not df_relatorio.empty:
-        correcao_primeira = f"{df_relatorio['PERC_CORRECOES_DE_PRIMEIRA'].astype(int).sum()}% correções de primeira"
-        retrabalho = f"{df_relatorio['PERC_RETRABALHO'].astype(int).sum()}% de retrabalho"
+    if not df_os_analise.empty and all(
+        col in df_os_analise.columns for col in ["PERC_CORRECAO_PRIMEIRA", "PERC_RETRABALHO"]
+    ):
+        correcao_primeira = f"{df_os_analise['PERC_CORRECAO_PRIMEIRA'].astype(float).mean().round(1)}% correções de primeira"
+        retrabalho = f"{df_os_analise['PERC_RETRABALHO'].astype(float).mean().round(1)}% de retrabalho"
     else:
         correcao_primeira = "Dados insuficientes para calcular correções de primeira"
         retrabalho = "Dados insuficientes para calcular retrabalho"
@@ -500,26 +514,28 @@ def computa_atuacao_mecanico_tipo_os(data):
     return fig
 
 @callback(
-    Output("graph-retrabalho-ano", "figure"), 
+    Output("graph-evolucao-retrabalho-por-mes", "figure"), 
     [
-        Input("ano-retrabalho", "value"), 
         Input("input-lista-colaborador", "value"),
+        Input("input-intervalo-datas-colaborador", "value"),
         Input("input-min-dias-colaborador", "value"),
     ]
 )
-def grafico_retrabalho_mes(id_colaborador, min_dias, ano):
+def grafico_retrabalho_mes(id_colaborador, datas, min_dias):
     '''plota grafico de evolução de retrabalho por ano'''
     dados_vazios = {"df_os_mecanico": pd.DataFrame().to_dict("records"), "vazio": True}
     # Validação dos inputs
-    if (id_colaborador is None) or (ano is None or not ano or None in ano) or (min_dias is None or min_dias < 1):
-        return ''
+    if (id_colaborador is None) or (datas is None) or (min_dias is None):
+        return go.Figure()
     
+    # Obtém análise estatística
+    df_os_analise = colab.obtem_estatistica_retrabalho_sql(
+        datas=datas, id_colaborador=id_colaborador, min_dias=min_dias
+    )
 
+    fig = generate_grafico_evolucao(df_os_analise)
+    return fig
 
-    df_os_mecanico = colab.obtem_dados_os_mecanico(id_colaborador)
     
-    df_os_analise = colab.obtem_dados_os_sql(id_colaborador, df_os_mecanico['DESCRICAO DO SERVICO'].tolist(), inicio, fim, min_dias)
-    
-    df_relatorio = colab.obtem_estatistica_retrabalho_sql(df_os_analise, min_dias)
     
     
