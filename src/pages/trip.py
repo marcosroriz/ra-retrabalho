@@ -8,6 +8,7 @@ import dash
 from modules.trips.trips_service import TripsService
 from modules.trips.functions import generate_timeline
 
+
 db = TripsService()
 
 dash.register_page(__name__, path='/timeline', icon="material-symbols:timeline")
@@ -83,7 +84,6 @@ layout = html.Div([
     )
 ])
 
-db = TripsService()
 
 # Callback para atualizar os componentes
 @callback(
