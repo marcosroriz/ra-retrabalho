@@ -823,7 +823,6 @@ def obtem_dados_os_sql(lista_os, data_inicio, data_fim, min_dias):
         problem_grouping."DATA INICIO SERVIÇO";
     """
 
-    # print(query)
     df_os_query = pd.read_sql_query(query, pgEngine)
 
     # Tratamento de datas
