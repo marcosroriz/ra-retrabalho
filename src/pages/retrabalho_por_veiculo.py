@@ -412,18 +412,6 @@ layout = dbc.Container(
             [
                 dbc.Col(DashIconify(icon="fluent:arrow-trending-wrench-20-filled", width=45), width="auto"),
                 dbc.Col(html.H4("Relações OS / mês", className="align-self-center"), width=True),
-                # dbc.Col(
-                #     dbc.Button(
-                #         [
-                #             DashIconify(icon="fluent:arrow-trending-wrench-20-filled", width=20, className="me-2"),
-                #             "Primary",
-                #         ],
-                #         outline=True,
-                #         color="primary",
-                #         className="me-1",
-                #     ),
-                #     width="auto",
-                # ),
             ],
             align="center",
         ),
@@ -459,32 +447,9 @@ layout = dbc.Container(
                 "localeText": locale_utils.AG_GRID_LOCALE_BR,
             },
         ),
-        dmc.Space(h=40),
-        # Tabela com as estatísticas gerais por Colaborador
-        dbc.Row(
-            [
-                dbc.Col(DashIconify(icon="mdi:account-wrench", width=45), width="auto"),
-                dbc.Col(
-                    html.H4("Detalhamento por colaborador das OSs escolhidas", className="align-self-center"),
-                    width=True,
-                ),
-            ],
-            align="center",
-        ),
-        dmc.Space(h=20),
-        dag.AgGrid(
-            id="tabela-top-os-colaborador-geral",
-            columnDefs=tbl_top_colaborador_geral_retrabalho,
-            rowData=[],
-            defaultColDef={"filter": True, "floatingFilter": True},
-            columnSize="responsiveSizeToFit",
-            dashGridOptions={
-                "localeText": locale_utils.AG_GRID_LOCALE_BR,
-            },
-        ),
-        dmc.Space(h=40),
         
         # Indicadores
+        dmc.Space(h=30),
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="material-symbols:insights", width=45), width="auto"),
@@ -668,7 +633,7 @@ layout = dbc.Container(
                                                     order=2,
                                                 ),
                                                 DashIconify(
-                                                    icon="game-icons:time-bomb",
+                                                    icon="mdi:cog",
                                                     width=48,
                                                     color="black",
                                                 ),
@@ -695,7 +660,7 @@ layout = dbc.Container(
                                                     order=2,
                                                 ),
                                                 DashIconify(
-                                                    icon="tabler:reorder",
+                                                    icon="mdi:wrench",
                                                     width=48,
                                                     color="black",
                                                 ),
@@ -778,7 +743,7 @@ layout = dbc.Container(
                                                     order=2,
                                                 ),
                                                 DashIconify(
-                                                    icon="tabler:reorder",
+                                                    icon="mdi:tools",
                                                     width=48,
                                                     color="black",
                                                 ),
@@ -802,7 +767,7 @@ layout = dbc.Container(
                                             [
                                                 dmc.Title(id="indicador-num-medio-dias-correcao", order=2),
                                                 DashIconify(
-                                                    icon="lucide:calendar-days",
+                                                    icon="mdi:account-wrench",
                                                     width=48,
                                                     color="black",
                                                 ),
@@ -824,6 +789,31 @@ layout = dbc.Container(
             
         ),
         dbc.Row(dmc.Space(h=40)),
+        dmc.Space(h=40),
+
+        # Tabela com as estatísticas gerais por Colaborador
+        dbc.Row(
+            [
+                dbc.Col(DashIconify(icon="mdi:account-wrench", width=45), width="auto"),
+                dbc.Col(
+                    html.H4("Detalhamento por colaborador das OSs escolhidas", className="align-self-center"),
+                    width=True,
+                ),
+            ],
+            align="center",
+        ),
+        dmc.Space(h=20),
+        dag.AgGrid(
+            id="tabela-top-os-colaborador-geral",
+            columnDefs=tbl_top_colaborador_geral_retrabalho,
+            rowData=[],
+            defaultColDef={"filter": True, "floatingFilter": True},
+            columnSize="responsiveSizeToFit",
+            dashGridOptions={
+                "localeText": locale_utils.AG_GRID_LOCALE_BR,
+            },
+        ),
+        dmc.Space(h=40),
     ]
 )
 
@@ -1113,11 +1103,6 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
 
     # Aumenta o espaçamento do titulo
     fig.for_each_xaxis(lambda axis: axis.update(title_standoff=90))  # Increase standoff for spacing
-
-    # Ajusta a altura do gráfico
-    # fig.update_layout(
-    #     height=400,  # Define a altura do gráfico
-    # )
 
     return fig
 
