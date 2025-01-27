@@ -72,7 +72,7 @@ dash.register_page(
 ##############################################################################
 layout = dbc.Container(
     [
-        # Loading
+        # Loading 
         dmc.LoadingOverlay(
             visible=True,
             id="loading-overlay",
@@ -92,12 +92,22 @@ layout = dbc.Container(
         # Cabeçalho
         html.Hr(),
         dbc.Row(
-            [
-                dbc.Col(DashIconify(icon="basil:user-clock-outline", width=45), width="auto"),
-                dbc.Col(html.H1("Retrabalho por Colaborador", className="align-self-center"), width=True),
-            ],
-            align="center",
-        ),
+                [
+                    dbc.Col(DashIconify(icon="basil:user-clock-outline", width=45), width="auto"),
+                    dbc.Col(
+                        html.H1(
+                            [
+                                "Visão geral do\u00a0",
+                                html.Strong("retrabalho"),
+                            ],
+                            className="align-self-center",
+                        ),
+                        width=True,
+                    ),
+                ],
+                align="center",
+            ),
+            dmc.Space(h=15),
         html.Hr(),
         # Filtros
         dbc.Row(
@@ -129,9 +139,8 @@ layout = dbc.Container(
                                     ],
                                     body=True,
                                 ),
-                                md=12,
+                                md=6,
                             ),
-                            dmc.Space(h=10),
                             dbc.Col(
                                 dbc.Card(
                                     [
@@ -154,6 +163,7 @@ layout = dbc.Container(
                                 ),
                                 md=6,
                             ),
+                            dmc.Space(h=10),
                             dbc.Col(
                                 dbc.Card(
                                     [
@@ -178,7 +188,6 @@ layout = dbc.Container(
                                 ),
                                 md=6,
                             ),
-                            dmc.Space(h=10),
                             dbc.Col(
                                 dbc.Card(
                                     [
@@ -233,6 +242,7 @@ layout = dbc.Container(
                                 ),
                                 md=6,
                             ),
+                            dmc.Space(h=10),
                             dbc.Col(
                                 dbc.Card(
                                     [
@@ -255,7 +265,7 @@ layout = dbc.Container(
                                     ],
                                     body=True,
                                 ),
-                                md=6,
+                                md=12,
                             ),
                         ]
                     ),
@@ -296,8 +306,6 @@ layout = dbc.Container(
         dmc.Space(h=30),
         # Estado
         dcc.Store(id="store-dados-colaborador-retrabalho"),
-        # Inicio dos gráficos
-        dbc.Row(dmc.Space(h=20)),
         # Graficos gerais
         html.Hr(),
         # Indicadores
