@@ -420,7 +420,7 @@ layout = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="fluent:arrow-trending-text-20-filled", width=45), width="auto"),
-                dbc.Col(html.H4("Evolução do retrabalho por seção / mês", className="align-self-center"), width=True),
+                dbc.Col(html.H4("Relaçao de retrabalho / mês", className="align-self-center"), width=True),
             ],
             align="center",
         ),
@@ -431,7 +431,7 @@ layout = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="fluent:line-horizontal-4-search-16-filled", width=45), width="auto"),
-                dbc.Col(html.H4("Detalhamento por tipo de OS (serviço)", className="align-self-center"), width=True),
+                dbc.Col(html.H4("AQUI DEVE SER UM GRAFICO DE PEÇAS TROCADAS POR MÊS", className="align-self-center"), width=True),
             ],
             align="center",
         ),
@@ -796,7 +796,7 @@ layout = dbc.Container(
             [
                 dbc.Col(DashIconify(icon="mdi:account-wrench", width=45), width="auto"),
                 dbc.Col(
-                    html.H4("Detalhamento por colaborador das OSs escolhidas", className="align-self-center"),
+                    html.H4("Detalhamento por tipo de OS", className="align-self-center"),
                     width=True,
                 ),
             ],
