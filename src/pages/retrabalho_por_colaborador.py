@@ -105,9 +105,10 @@ tbl_top_os_geral_retrabalho = [
         "wrapHeaderText": True,
         "autoHeaderHeight": True,
         "filter": "agNumberColumnFilter",
-        "maxWidth": 160,
+        "maxWidth": 250,
         "valueFormatter": {"function": "params.value + '%'"},
         "type": ["numericColumn"],
+        "minWidth": 200
     },
 
 ]
@@ -132,35 +133,32 @@ layout = dbc.Container(
             },
             zIndex=10,
         ),
-        # Cabeçalho
-        html.Hr(),
         dbc.Row(
-                [
-                dbc.Row(
+            [
+                dbc.Col(
                     [
-                        dbc.Col(DashIconify(icon="basil:user-clock-outline", width=45), width="auto"),
-                        dbc.Col(
-                            html.H1(
-                                [
-                                    "Visão geral do\u00a0",
-                                    html.Strong("retrabalho"),
-                                ],
-                                className="align-self-center",
-                            ),
-                            width=True,
-                        ),
-                    ],
-                    align="center",
-                ),
-                dmc.Space(h=15),
-            html.Hr(),
-            # Filtros
-            dbc.Row(
-                [
-                    dbc.Col(
-                        # Filtros
+                        # Cabeçalho e Inputs
                         dbc.Row(
                             [
+                                html.Hr(),
+                                dbc.Row(
+                                    [
+                                        dbc.Col(DashIconify(icon="mdi:account-wrench", width=45), width="auto"),
+                                        dbc.Col(
+                                            html.H1(
+                                                [
+                                                    "Visão geral do\u00a0",
+                                                    html.Strong("Colaborador"),
+                                                ],
+                                                className="align-self-center",
+                                            ),
+                                            width=True,
+                                        ),
+                                    ],
+                                    align="center",
+                                ),
+                                dmc.Space(h=15),
+                                html.Hr(),
                                 dbc.Col(
                                     dbc.Card(
                                         [
@@ -177,6 +175,7 @@ layout = dbc.Container(
                                                             for ix, linha in df_mecanicos_todos.iterrows()
                                                         ],
                                                         placeholder="Selecione um colaborador",
+                                                        value=3295,
                                                     ),
                                                 ],
                                                 className="dash-bootstrap",
@@ -186,12 +185,13 @@ layout = dbc.Container(
                                     ),
                                     md=6,
                                 ),
+                                
                                 dbc.Col(
                                     dbc.Card(
                                         [
                                             html.Div(
                                                 [
-                                                    dbc.Label("Data (Intervalo)"),
+                                                    dbc.Label("Data (intervalo) de análise"),
                                                     dmc.DatePicker(
                                                         id="input-intervalo-datas-colaborador",
                                                         allowSingleDateInRange=True,
@@ -233,6 +233,7 @@ layout = dbc.Container(
                                     ),
                                     md=6,
                                 ),
+                                
                                 dbc.Col(
                                     dbc.Card(
                                         [
@@ -280,7 +281,7 @@ layout = dbc.Container(
                                                         placeholder="Selecione uma ou mais seções...",
                                                     ),
                                                 ],
-                                                className="dash-bootstrap",
+                                                # className="dash-bootstrap",
                                             ),
                                         ],
                                         body=True,
@@ -314,40 +315,33 @@ layout = dbc.Container(
                                 ),
                             ]
                         ),
-                        md=8,
-                    ),
-
-                    dbc.Col(
-                        # Resumo
-                        dbc.Card(
+                    ],
+                    md=8,
+                ),
+                dbc.Col(
+                    # Resumo
+                    dbc.Row(
+                        [
                             dbc.Row(
                                 [
-                                    dbc.Row(
-                                        [
-                                            html.Hr(),
-                                            dbc.Col(
-                                                DashIconify(icon="wpf:statistics", width=45),
-                                                width="auto",
-                                            ),
-                                            dbc.Col(
-                                                html.H1("Resumo", className="align-self-center"),
-                                                width=True,
-                                            ),
-                                            dmc.Space(h=15),
-                                            html.Hr(),
-                                        ],
-                                        align="center",
-
+                                    # Cabeçalho
+                                    html.Hr(),
+                                    dbc.Col(
+                                        DashIconify(icon="wpf:statistics", width=45),
+                                        width="auto",
                                     ),
-                                    dcc.Graph(id="graph-pizza-sintese-colaborador"),
-                                ]
+                                    dbc.Col(html.H1("Resumo", className="align-self-center"), width=True),
+                                    dmc.Space(h=15),
+                                    html.Hr(),
+                                ],
+                                align="center",
                             ),
-                            body=True,
-                        ),
-                        md=4,
+                            # Gráfico de pizza com a relação entre Retrabalho e Correção
+                            dcc.Graph(id="graph-pizza-sintese-colaborador"),
+                        ]
                     ),
-                ]
-            ),  
+                    md=4,
+                ),
             ]
         ),
         dmc.Space(h=30),
@@ -419,7 +413,7 @@ layout = dbc.Container(
                                     [
                                         dmc.Title(id="indicador-rank-servico", order=2),
                                         DashIconify(
-                                            icon="mdi:account-wrench",
+                                            icon="ion:analytics-sharp",
                                             width=48,
                                             color="black",
                                         ),
@@ -624,7 +618,7 @@ def corrige_input_ordem_servico(lista_os, lista_secaos):
 )
 def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os):
     
-
+    id_colaborador = 3295 if id_colaborador is None else id_colaborador
     # Validação dos inputs
     if not id_colaborador or not datas or any(d is None for d in datas) or not isinstance(min_dias, int) or min_dias < 1:
         return '', '', '', '','', ''
