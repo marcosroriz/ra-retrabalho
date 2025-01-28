@@ -27,7 +27,7 @@ def generate_grafico_evolucao(dados):
 
 # Funde (melt) colunas de retrabalho e correção
     df_combinado = dados.melt(
-        id_vars=["year_month_dt", "DESCRICAO DA OFICINA"],
+        id_vars=["year_month_dt", "escopo"],
         value_vars=["PERC_RETRABALHO", "PERC_CORRECAO_PRIMEIRA"],
         var_name="CATEGORIA",
         value_name="PERC",
@@ -43,10 +43,10 @@ def generate_grafico_evolucao(dados):
         df_combinado,
         x="year_month_dt",
         y="PERC",
-        color="DESCRICAO DA OFICINA",
+        color="escopo",
         facet_col="CATEGORIA",
         facet_col_spacing=0.05,  # Espaçamento entre os gráficos
-        labels={"DESCRICAO DA OFICINA": "Oficina", "year_month_dt": "Ano-Mês", "PERC": "%"},
+        labels={"escopo": "Oficina", "year_month_dt": "Ano-Mês", "PERC": "%"},
         markers=True,
     )
 

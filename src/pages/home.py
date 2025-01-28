@@ -1084,7 +1084,7 @@ def atualiza_tabela_top_os_geral_retrabalho(datas, min_dias, lista_oficinas, lis
     ORDER BY
         "PERC_RETRABALHO" DESC;
     """
-
+    
     # Executa a query
     df = pd.read_sql(query, pgEngine)
 

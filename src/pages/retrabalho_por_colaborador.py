@@ -69,6 +69,49 @@ dash.register_page(
     __name__, name="Retrabalho por Colaborador", path="/retrabalho-por-colaborador", icon="fluent-mdl2:timeline"
 )
 
+# Tabela Top OS de Retrabalho
+tbl_top_os_geral_retrabalho = [
+    {"field": "DESCRICAO DA OFICINA", "headerName": "OFICINA", "filter": "agSetColumnFilter", "minWidth": 200},
+    {"field": "DESCRICAO DA SECAO", "headerName": "SEÇÃO", "filter": "agSetColumnFilter", "minWidth": 200},
+    {"field": "DESCRICAO DO SERVICO", "headerName": "SERVIÇO", "filter": "agSetColumnFilter", "minWidth": 250},
+    {
+        "field": "TOTAL_OS",
+        "headerName": "TOTAL DE OS",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "maxWidth": 160,
+        "filter": "agNumberColumnFilter",
+        "type": ["numericColumn"],
+    },
+    {
+        "field": "PERC_TOTAL_OS",
+        "headerName": "% OS",
+        "filter": "agNumberColumnFilter",
+        "maxWidth": 160,
+        "valueFormatter": {"function": "params.value + '%'"},
+        "type": ["numericColumn"],
+    },
+    {
+        "field": "PERC_RETRABALHO",
+        "headerName": "% RETRABALHOS",
+        "filter": "agNumberColumnFilter",
+        "maxWidth": 160,
+        "valueFormatter": {"function": "params.value + '%'"},
+        "type": ["numericColumn"],
+    },
+    {
+        "field": "PERC_CORRECAO_PRIMEIRA",
+        "headerName": "% CORREÇÕES DE PRIMEIRA",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "filter": "agNumberColumnFilter",
+        "maxWidth": 160,
+        "valueFormatter": {"function": "params.value + '%'"},
+        "type": ["numericColumn"],
+    },
+
+]
+
 ##############################################################################
 layout = dbc.Container(
     [
@@ -93,216 +136,220 @@ layout = dbc.Container(
         html.Hr(),
         dbc.Row(
                 [
-                    dbc.Col(DashIconify(icon="basil:user-clock-outline", width=45), width="auto"),
-                    dbc.Col(
-                        html.H1(
-                            [
-                                "Visão geral do\u00a0",
-                                html.Strong("retrabalho"),
-                            ],
-                            className="align-self-center",
+                dbc.Row(
+                    [
+                        dbc.Col(DashIconify(icon="basil:user-clock-outline", width=45), width="auto"),
+                        dbc.Col(
+                            html.H1(
+                                [
+                                    "Visão geral do\u00a0",
+                                    html.Strong("retrabalho"),
+                                ],
+                                className="align-self-center",
+                            ),
+                            width=True,
                         ),
-                        width=True,
-                    ),
-                ],
-                align="center",
-            ),
-            dmc.Space(h=15),
-        html.Hr(),
-        # Filtros
-        dbc.Row(
-            [
-                dbc.Col(
-                    # Filtros
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                dbc.Card(
-                                    [
-                                        html.Div(
-                                            [
-                                                dbc.Label("Colaborador (Código):"),
-                                                dcc.Dropdown(
-                                                    id="input-lista-colaborador",
-                                                    options=[
-                                                        {
-                                                            "label": f"{linha['LABEL_COLABORADOR']}",
-                                                            "value": linha["cod_colaborador"],
-                                                        }
-                                                        for ix, linha in df_mecanicos_todos.iterrows()
-                                                    ],
-                                                    placeholder="Selecione um colaborador",
-                                                ),
-                                            ],
-                                            className="dash-bootstrap",
-                                        ),
-                                    ],
-                                    body=True,
-                                ),
-                                md=6,
-                            ),
-                            dbc.Col(
-                                dbc.Card(
-                                    [
-                                        html.Div(
-                                            [
-                                                dbc.Label("Data (Intervalo)"),
-                                                dmc.DatePicker(
-                                                    id="input-intervalo-datas-colaborador",
-                                                    allowSingleDateInRange=True,
-                                                    type="range",
-                                                    minDate=date(2024, 1, 1),
-                                                    maxDate=date.today(),
-                                                    value=[date(2024, 1, 1), date.today()],
-                                                ),
-                                            ],
-                                            className="dash-bootstrap",
-                                        ),
-                                    ],
-                                    body=True,
-                                ),
-                                md=6,
-                            ),
-                            dmc.Space(h=10),
-                            dbc.Col(
-                                dbc.Card(
-                                    [
-                                        html.Div(
-                                            [
-                                                dbc.Label("Tempo (em dias) entre OS para retrabalho"),
-                                                dcc.Dropdown(
-                                                    id="input-min-dias-colaborador",
-                                                    options=[
-                                                        {"label": "10 dias", "value": 10},
-                                                        {"label": "15 dias", "value": 15},
-                                                        {"label": "30 dias", "value": 30},
-                                                    ],
-                                                    placeholder="Período em dias",
-                                                    value=10,
-                                                ),
-                                            ],
-                                            className="dash-bootstrap",
-                                        ),
-                                    ],
-                                    body=True,
-                                ),
-                                md=6,
-                            ),
-                            dbc.Col(
-                                dbc.Card(
-                                    [
-                                        html.Div(
-                                            [
-                                                dbc.Label("Seções (categorias) de manutenção"),
-                                                dcc.Dropdown(
-                                                    id="input-select-secao-colaborador",
-                                                    options=[
-                                                        {"label": "TODAS", "value": "TODAS"},
-                                                        {
-                                                            "label": "BORRACHARIA",
-                                                            "value": "MANUTENCAO BORRACHARIA",
-                                                        },
-                                                        {
-                                                            "label": "ELETRICA",
-                                                            "value": "MANUTENCAO ELETRICA",
-                                                        },
-                                                        {"label": "GARAGEM", "value": "MANUTENÇÃO GARAGEM"},
-                                                        {
-                                                            "label": "LANTERNAGEM",
-                                                            "value": "MANUTENCAO LANTERNAGEM",
-                                                        },
-                                                        {"label": "LUBRIFICAÇÃO", "value": "LUBRIFICAÇÃO"},
-                                                        {
-                                                            "label": "MECANICA",
-                                                            "value": "MANUTENCAO MECANICA",
-                                                        },
-                                                        {"label": "PINTURA", "value": "MANUTENCAO PINTURA"},
-                                                        {
-                                                            "label": "SERVIÇOS DE TERCEIROS",
-                                                            "value": "SERVIÇOS DE TERCEIROS",
-                                                        },
-                                                        {
-                                                            "label": "SETOR DE ALINHAMENTO",
-                                                            "value": "SETOR DE ALINHAMENTO",
-                                                        },
-                                                        {
-                                                            "label": "SETOR DE POLIMENTO",
-                                                            "value": "SETOR DE POLIMENTO",
-                                                        },
-                                                    ],
-                                                    multi=True,
-                                                    value=["TODAS"],
-                                                    placeholder="Selecione uma ou mais seções...",
-                                                ),
-                                            ],
-                                            className="dash-bootstrap",
-                                        ),
-                                    ],
-                                    body=True,
-                                ),
-                                md=6,
-                            ),
-                            dmc.Space(h=10),
-                            dbc.Col(
-                                dbc.Card(
-                                    [
-                                        html.Div(
-                                            [
-                                                dbc.Label("Ordens de Serviço"),
-                                                dcc.Dropdown(
-                                                    id="input-select-ordens-servico-colaborador",
-                                                    options=[
-                                                        {"label": os["LABEL"], "value": os["LABEL"]}
-                                                        for os in lista_todas_os
-                                                    ],
-                                                    multi=True,
-                                                    value=["TODAS"],
-                                                    placeholder="Selecione uma ou mais ordens de serviço...",
-                                                ),
-                                            ],
-                                            className="dash-bootstrap",
-                                        ),
-                                    ],
-                                    body=True,
-                                ),
-                                md=12,
-                            ),
-                        ]
-                    ),
-                    md=8,
+                    ],
+                    align="center",
                 ),
-
-                dbc.Col(
-                    # Resumo
-                    dbc.Card(
+                dmc.Space(h=15),
+            html.Hr(),
+            # Filtros
+            dbc.Row(
+                [
+                    dbc.Col(
+                        # Filtros
                         dbc.Row(
                             [
-                                dbc.Row(
-                                    [
-                                        html.Hr(),
-                                        dbc.Col(
-                                            DashIconify(icon="wpf:statistics", width=45),
-                                            width="auto",
-                                        ),
-                                        dbc.Col(
-                                            html.H1("Resumo", className="align-self-center"),
-                                            width=True,
-                                        ),
-                                        dmc.Space(h=15),
-                                        html.Hr(),
-                                    ],
-                                    align="center",
+                                dbc.Col(
+                                    dbc.Card(
+                                        [
+                                            html.Div(
+                                                [
+                                                    dbc.Label("Colaborador (Código):"),
+                                                    dcc.Dropdown(
+                                                        id="input-lista-colaborador",
+                                                        options=[
+                                                            {
+                                                                "label": f"{linha['LABEL_COLABORADOR']}",
+                                                                "value": linha["cod_colaborador"],
+                                                            }
+                                                            for ix, linha in df_mecanicos_todos.iterrows()
+                                                        ],
+                                                        placeholder="Selecione um colaborador",
+                                                    ),
+                                                ],
+                                                className="dash-bootstrap",
+                                            ),
+                                        ],
+                                        body=True,
+                                    ),
+                                    md=6,
                                 ),
-                                dcc.Graph(id="graph-pizza-sintese-colaborador"),
+                                dbc.Col(
+                                    dbc.Card(
+                                        [
+                                            html.Div(
+                                                [
+                                                    dbc.Label("Data (Intervalo)"),
+                                                    dmc.DatePicker(
+                                                        id="input-intervalo-datas-colaborador",
+                                                        allowSingleDateInRange=True,
+                                                        type="range",
+                                                        minDate=date(2024, 1, 1),
+                                                        maxDate=date.today(),
+                                                        value=[date(2024, 1, 1), date.today()],
+                                                    ),
+                                                ],
+                                                className="dash-bootstrap",
+                                            ),
+                                        ],
+                                        body=True,
+                                    ),
+                                    md=6,
+                                ),
+                                dmc.Space(h=10),
+                                dbc.Col(
+                                    dbc.Card(
+                                        [
+                                            html.Div(
+                                                [
+                                                    dbc.Label("Tempo (em dias) entre OS para retrabalho"),
+                                                    dcc.Dropdown(
+                                                        id="input-min-dias-colaborador",
+                                                        options=[
+                                                            {"label": "10 dias", "value": 10},
+                                                            {"label": "15 dias", "value": 15},
+                                                            {"label": "30 dias", "value": 30},
+                                                        ],
+                                                        placeholder="Período em dias",
+                                                        value=10,
+                                                    ),
+                                                ],
+                                                className="dash-bootstrap",
+                                            ),
+                                        ],
+                                        body=True,
+                                    ),
+                                    md=6,
+                                ),
+                                dbc.Col(
+                                    dbc.Card(
+                                        [
+                                            html.Div(
+                                                [
+                                                    dbc.Label("Seções (categorias) de manutenção"),
+                                                    dcc.Dropdown(
+                                                        id="input-select-secao-colaborador",
+                                                        options=[
+                                                            {"label": "TODAS", "value": "TODAS"},
+                                                            {
+                                                                "label": "BORRACHARIA",
+                                                                "value": "MANUTENCAO BORRACHARIA",
+                                                            },
+                                                            {
+                                                                "label": "ELETRICA",
+                                                                "value": "MANUTENCAO ELETRICA",
+                                                            },
+                                                            {"label": "GARAGEM", "value": "MANUTENÇÃO GARAGEM"},
+                                                            {
+                                                                "label": "LANTERNAGEM",
+                                                                "value": "MANUTENCAO LANTERNAGEM",
+                                                            },
+                                                            {"label": "LUBRIFICAÇÃO", "value": "LUBRIFICAÇÃO"},
+                                                            {
+                                                                "label": "MECANICA",
+                                                                "value": "MANUTENCAO MECANICA",
+                                                            },
+                                                            {"label": "PINTURA", "value": "MANUTENCAO PINTURA"},
+                                                            {
+                                                                "label": "SERVIÇOS DE TERCEIROS",
+                                                                "value": "SERVIÇOS DE TERCEIROS",
+                                                            },
+                                                            {
+                                                                "label": "SETOR DE ALINHAMENTO",
+                                                                "value": "SETOR DE ALINHAMENTO",
+                                                            },
+                                                            {
+                                                                "label": "SETOR DE POLIMENTO",
+                                                                "value": "SETOR DE POLIMENTO",
+                                                            },
+                                                        ],
+                                                        multi=True,
+                                                        value=["TODAS"],
+                                                        placeholder="Selecione uma ou mais seções...",
+                                                    ),
+                                                ],
+                                                className="dash-bootstrap",
+                                            ),
+                                        ],
+                                        body=True,
+                                    ),
+                                    md=6,
+                                ),
+                                dmc.Space(h=10),
+                                dbc.Col(
+                                    dbc.Card(
+                                        [
+                                            html.Div(
+                                                [
+                                                    dbc.Label("Ordens de Serviço"),
+                                                    dcc.Dropdown(
+                                                        id="input-select-ordens-servico-colaborador",
+                                                        options=[
+                                                            {"label": os["LABEL"], "value": os["LABEL"]}
+                                                            for os in lista_todas_os
+                                                        ],
+                                                        multi=True,
+                                                        value=["TODAS"],
+                                                        placeholder="Selecione uma ou mais ordens de serviço...",
+                                                    ),
+                                                ],
+                                                className="dash-bootstrap",
+                                            ),
+                                        ],
+                                        body=True,
+                                    ),
+                                    md=12,
+                                ),
                             ]
                         ),
-                        body=True,
+                        md=8,
                     ),
-                    md=4,
-                ),
+
+                    dbc.Col(
+                        # Resumo
+                        dbc.Card(
+                            dbc.Row(
+                                [
+                                    dbc.Row(
+                                        [
+                                            html.Hr(),
+                                            dbc.Col(
+                                                DashIconify(icon="wpf:statistics", width=45),
+                                                width="auto",
+                                            ),
+                                            dbc.Col(
+                                                html.H1("Resumo", className="align-self-center"),
+                                                width=True,
+                                            ),
+                                            dmc.Space(h=15),
+                                            html.Hr(),
+                                        ],
+                                        align="center",
+
+                                    ),
+                                    dcc.Graph(id="graph-pizza-sintese-colaborador"),
+                                ]
+                            ),
+                            body=True,
+                        ),
+                        md=4,
+                    ),
+                ]
+            ),  
             ]
         ),
-
         dmc.Space(h=30),
         # Estado
         dcc.Store(id="store-dados-colaborador-retrabalho"),
@@ -364,6 +411,31 @@ layout = dbc.Container(
                     md=4,
                     style={"margin-bottom": "20px"},
                 ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(id="indicador-rank-servico", order=2),
+                                        DashIconify(
+                                            icon="mdi:account-wrench",
+                                            width=48,
+                                            color="black",
+                                        ),
+                                    ],
+                                    justify="center",  # Centralize conteúdo no card
+                                    mt="md",
+                                    mb="xs",
+                                ),
+                            ),
+                            dbc.CardFooter("Rank de serviços diferentes"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=4,
+                    style={"margin-bottom": "20px"},  # Adicione espaçamento inferior
+                )
             ],
             justify="center",  # Centralize a linha inteira
         ),
@@ -401,6 +473,31 @@ layout = dbc.Container(
                             dbc.CardBody(
                                 dmc.Group(
                                     [
+                                        dmc.Title(id="indicador-rank-os", order=2),
+                                        DashIconify(
+                                            icon="mdi:account-wrench",
+                                            width=48,
+                                            color="black",
+                                        ),
+                                    ],
+                                    justify="center",  # Centralize conteúdo no card
+                                    mt="md",
+                                    mb="xs",
+                                ),
+                            ),
+                            dbc.CardFooter("Rank de OSs absolutas"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=4,
+                    style={"margin-bottom": "20px"},  # Adicione espaçamento inferior
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
                                         dmc.Title(id="indicador-retrabalho", order=2),
                                         DashIconify(
                                             icon="tabler:reorder",
@@ -427,6 +524,7 @@ layout = dbc.Container(
     style={"margin-top": "20px", "margin-bottom": "20px"},
     ),
         dmc.Space(h=40),
+        html.Hr(),
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="fluent:arrow-trending-text-20-filled", width=45), width="auto"),
@@ -436,14 +534,29 @@ layout = dbc.Container(
         ),
         dcc.Graph(id="graph-evolucao-retrabalho-por-mes"),
         dbc.Row(dmc.Space(h=20)),
+        html.Hr(),
         dbc.Row(
             [
                 # Gráfico de Pizza
                 dbc.Col(dbc.Row([html.H4("Atuação Geral"), dcc.Graph(id="graph-barra-atuacao-geral")]), md=4),
                 # Indicadores
                 dbc.Col(dbc.Row([html.H4("Atuação OS (TOP 10)"), dcc.Graph(id="graph-principais-os")]), md=8),
-            ]
+            ],
+            align="center",
         ),
+        dmc.Space(h=10),
+        dag.AgGrid(
+            id="tabela-top-os-colaborador",
+            columnDefs=tbl_top_os_geral_retrabalho,
+            rowData=[],
+            defaultColDef={"filter": True, "floatingFilter": True},
+            columnSize="autoSize",
+            dashGridOptions={
+                "localeText": locale_utils.AG_GRID_LOCALE_BR,
+            },
+        ),
+        dmc.Space(h=40),
+        
     ]
 )
 
@@ -497,13 +610,15 @@ def corrige_input_ordem_servico(lista_os, lista_secaos):
         Output("indicador-quantidade-servico", "children"),
         Output("indicador-correcao-de-primeira", "children"),
         Output("indicador-retrabalho", "children"),
+        Output("indicador-rank-servico", "children"),
+        Output("indicador-rank-os", "children"),
     ],
     [
         Input("input-lista-colaborador", "value"),
         Input("input-intervalo-datas-colaborador", "value"),
         Input("input-min-dias-colaborador", "value"),
-        Input("input-select-ordens-servico-colaborador", "value"),
         Input("input-select-secao-colaborador", "value"),
+        Input("input-select-ordens-servico-colaborador", "value"),
     ],
     running=[(Output("loading-overlay", "visible"), True, False)],
 )
@@ -512,7 +627,7 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
 
     # Validação dos inputs
     if not id_colaborador or not datas or any(d is None for d in datas) or not isinstance(min_dias, int) or min_dias < 1:
-        return '', '', '', ''
+        return '', '', '', '','', ''
     
     inicio = pd.to_datetime(datas[0])
     fim = pd.to_datetime(datas[1])
@@ -524,6 +639,8 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
             "Nenhuma OS encontrada para esse colaborador.",
             "Nenhuma OS encontrada para esse colaborador.",
             'Nenhuma OS encontrada para esse colaborador.',
+            'Nenhuma OS realizada no período selecionado.',
+            'Nenhuma OS realizada no período selecionado.',
             'Nenhuma OS encontrada para esse colaborador.',
         )
 
@@ -541,6 +658,8 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
             "Nenhuma OS realizada no período selecionado.",
             'Nenhuma OS realizada no período selecionado.',
             'Nenhuma OS realizada no período selecionado.',
+            'Nenhuma OS realizada no período selecionado.',
+            'Nenhuma OS realizada no período selecionado.',
         )
 
     # Indicador 1: Total de OSs trabalhadas
@@ -553,20 +672,33 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
     )
 
     # Indicador 2: Quantidade de serviços únicos realizados
-    servicos_diferentes = len(df_os_analise['DESCRICAO DO SERVICO'].value_counts().index)
+    servicos_diferentes = df_os_analise['QTD_SERVICOS_DIFERENTES'].iloc[0]
     quantidade_servicos = f"{servicos_diferentes} Serviços Realizados"
 
     # Indicadores de correção de primeira e retrabalho
     if not df_os_analise.empty and all(
         col in df_os_analise.columns for col in ["PERC_CORRECAO_PRIMEIRA", "PERC_RETRABALHO"]
     ):
-        correcao_primeira = f"{df_os_analise['PERC_CORRECAO_PRIMEIRA'].astype(float).mean().round(1)}% correções de primeira"
-        retrabalho = f"{df_os_analise['PERC_RETRABALHO'].astype(float).mean().round(1)}% de retrabalho"
+        correcao_primeira = f"{df_os_analise['PERC_CORRECAO_PRIMEIRA'].iloc[0]}% correções de primeira"
+        retrabalho = f"{df_os_analise['PERC_RETRABALHO'].iloc[0] if not df_os_analise['PERC_RETRABALHO'].iloc[0] == None else 0}% de retrabalho"
     else:
         correcao_primeira = "Dados insuficientes para calcular correções de primeira"
         retrabalho = "Dados insuficientes para calcular retrabalho"
+        
+    df_rank_servico = colab.indcador_rank_servico(
+        datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
+        lista_secaos=lista_secaos, lista_os=lista_os
+    )
+    
+    df_rank_os = colab.indcador_rank_total_os(
+        datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
+        lista_secaos=lista_secaos, lista_os=lista_os
+    )
+    
+    rank_servico = f"{df_rank_servico['rank_colaborador'].iloc[0]}° posição"
+    rank_os_absoluta = f"{df_rank_os['rank_colaborador'].iloc[0]}°  posição"
 
-    return total_os, quantidade_servicos, correcao_primeira, retrabalho
+    return total_os, quantidade_servicos, correcao_primeira, retrabalho, rank_servico, rank_os_absoluta
 
 
 
@@ -577,6 +709,7 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
         Input("input-intervalo-datas-colaborador", "value"),
         Input("input-min-dias-colaborador", "value"),
     ],
+    running=[(Output("loading-overlay", "visible"), True, False)],
 )
 def computa_retrabalho_mecanico(id_colaborador, datas, min_dias):
     dados_vazios = {"df_os_mecanico": pd.DataFrame().to_dict("records"), "vazio": True}
@@ -639,43 +772,45 @@ def computa_atuacao_mecanico_tipo_os(data):
     return fig
 
 
-@callback(Output("graph-principais-os", "figure"), Input("store-dados-colaborador-retrabalho", "data"))
-def computa_atuacao_mecanico_tipo_os(data):
-    if data["vazio"]:
+@callback(
+    Output("graph-principais-os", "figure"), 
+    [
+        Input("input-lista-colaborador", "value"),
+        Input("input-intervalo-datas-colaborador", "value"),
+        Input("input-min-dias-colaborador", "value"),
+        Input("input-select-secao-colaborador", "value"),
+        Input("input-select-ordens-servico-colaborador", "value"),
+    ],
+)
+def computa_atuacao_mecanico_tipo_os(id_colaborador, datas, min_dias, lista_secaos, lista_os):
+    if id_colaborador is None:
         return go.Figure()
 
     # Obtem OS
-    df_os_mecanico = pd.DataFrame(data["df_os_mecanico"])
+    df_os_mecanico = colab.dados_grafico_top_10_do_colaborador(
+        datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
+        lista_secaos=lista_secaos, lista_os=lista_os
+    ).sort_values('TOTAL_OS',ascending=False)
 
-    # Prepara os dados para o gráfico
-    df_agg_servico = (
-        df_os_mecanico.groupby(["DESCRICAO DO SERVICO"])
-        .size()
-        .reset_index(name="QUANTIDADE")
-        .sort_values(by="QUANTIDADE", ascending=False)
-    )
-
-    # Percentagem
-    df_agg_servico["PERCENTAGE"] = (df_agg_servico["QUANTIDADE"] / df_agg_servico["QUANTIDADE"].sum()) * 100
-
+  
     # Top 10 serviços
-    df_agg_servico_top10 = df_agg_servico.head(10)
+    df_agg_servico_top10 = df_os_mecanico.head(10)
 
     # Gera o Gráfico
     fig = px.bar(
         df_agg_servico_top10,
         x="DESCRICAO DO SERVICO",
-        y="QUANTIDADE",
+        y="TOTAL_OS",
         # orientation="h",
-        text="QUANTIDADE",  # Initial text for display
+        text="TOTAL_OS",  # Initial text for display
     )
 
     fig.update_traces(
         texttemplate="%{y} (%{customdata:.1f}%)",
-        customdata=df_agg_servico_top10["PERCENTAGE"],  # Add percentage data
+        customdata=df_agg_servico_top10["PERC_TOTAL_OS"],  # Add percentage data
         textposition="inside",
     )
-
+    fig.update_layout(xaxis_title="")
     return fig
 
 @callback(
@@ -684,17 +819,21 @@ def computa_atuacao_mecanico_tipo_os(data):
         Input("input-lista-colaborador", "value"),
         Input("input-intervalo-datas-colaborador", "value"),
         Input("input-min-dias-colaborador", "value"),
-        Input("input-select-ordens-servico-colaborador", "value"),
         Input("input-select-secao-colaborador", "value"),
-    ]
+        Input("input-select-ordens-servico-colaborador", "value"),
+    ],
+    running=[(Output("loading-overlay", "visible"), True, False)],
 )
 def grafico_retrabalho_mes(id_colaborador, datas, min_dias, lista_secaos, lista_os):
     '''plota grafico de evolução de retrabalho por ano'''
+    print(f"Inputs recebidos: {id_colaborador}, {datas}, {min_dias}, {lista_secaos}, {lista_os}")
+    
     dados_vazios = {"df_os_mecanico": pd.DataFrame().to_dict("records"), "vazio": True}
     # Validação dos inputs
     if (id_colaborador is None) or (datas is None) or (min_dias is None):
         return go.Figure()
     
+    print(id_colaborador)
     # Obtém análise estatística
     df_os_analise = colab.obtem_estatistica_retrabalho_grafico(
         datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
@@ -710,9 +849,10 @@ def grafico_retrabalho_mes(id_colaborador, datas, min_dias, lista_secaos, lista_
         Input("input-lista-colaborador", "value"),
         Input("input-intervalo-datas-colaborador", "value"),
         Input("input-min-dias-colaborador", "value"),
-        Input("input-select-ordens-servico-colaborador", "value"),
         Input("input-select-secao-colaborador", "value"),
-    ]
+        Input("input-select-ordens-servico-colaborador", "value"),
+    ],
+    running=[(Output("loading-overlay", "visible"), True, False)],
 )
 def grafico_retrabalho_resumo(id_colaborador, datas, min_dias, lista_secaos, lista_os):
     '''plota grafico de evolução de retrabalho por ano'''
@@ -730,6 +870,24 @@ def grafico_retrabalho_resumo(id_colaborador, datas, min_dias, lista_secaos, lis
     fig = grafico_pizza_colaborador(df_os_analise)
     return fig
 
+@callback(
+    Output("tabela-top-os-colaborador", "rowData"), 
+    [
+        Input("input-lista-colaborador", "value"),
+        Input("input-intervalo-datas-colaborador", "value"),
+        Input("input-min-dias-colaborador", "value"),
+        Input("input-select-secao-colaborador", "value"),
+        Input("input-select-ordens-servico-colaborador", "value"),
+    ],
+    running=[(Output("loading-overlay", "visible"), True, False)],
+)
+def tabela_visao_geral_colaborador(id_colaborador, datas, min_dias, lista_secaos, lista_os):
     
+    if (id_colaborador is None) or (datas is None) or (min_dias is None):
+        return []
     
+    return colab.dados_tabela_do_colaborador(
+        datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
+        lista_secaos=lista_secaos, lista_os=lista_os
+    )
     
