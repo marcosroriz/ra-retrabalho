@@ -79,97 +79,50 @@ lista_todos_veiculos.insert(0, {"VEICULO": "TODAS"})
 
 # Tabela Top OS de Retrabalho
 tbl_top_os_geral_retrabalho = [
-    {"field": "DESCRICAO DA OFICINA", "headerName": "OFICINA", "filter": "agSetColumnFilter", "minWidth": 200},
-    {"field": "DESCRICAO DA SECAO", "headerName": "SEÇÃO", "filter": "agSetColumnFilter", "minWidth": 200},
-    {"field": "DESCRICAO DO SERVICO", "headerName": "SERVIÇO", "filter": "agSetColumnFilter", "minWidth": 250},
-    {
-        "field": "TOTAL_OS",
-        "headerName": "TOTAL DE OS",
-        "wrapHeaderText": True,
-        "autoHeaderHeight": True,
-        "maxWidth": 160,
-        "filter": "agNumberColumnFilter",
-        "type": ["numericColumn"],
-    },
-    {
-        "field": "PERC_RETRABALHO",
-        "headerName": "% RETRABALHOS",
-        "filter": "agNumberColumnFilter",
-        "maxWidth": 160,
-        "valueFormatter": {"function": "params.value + '%'"},
-        "type": ["numericColumn"],
-    },
+    {"field": "DESCRICAO DO SERVICO", "headerName": "DESCRIÇÃO (PROBLEMA)", "filter": "agSetColumnFilter", "minWidth": 300},
+    {"field": "TOTAL_OS", "headerName": "QTD DE OS'S", "filter": "agSetColumnFilter", "minWidth": 200},
+    {"field": "PERC_RETRABALHO", "headerName": "% RETRABALHO", "filter": "agSetColumnFilter", "minWidth": 200, "valueFormatter": {"function": "params.value + '%'"},},
+    # {
+    #     "field": "TOTAL_OS",
+    #     "headerName": "MÉDIA",
+    #     "wrapHeaderText": True,
+    #     "autoHeaderHeight": True,
+    #     "maxWidth": 160,
+    #     "filter": "agNumberColumnFilter",
+    #     "type": ["numericColumn"],
+    # },
     {
         "field": "PERC_CORRECAO_PRIMEIRA",
-        "headerName": "% CORREÇÕES DE PRIMEIRA",
-        "wrapHeaderText": True,
-        "autoHeaderHeight": True,
+        "headerName": "% CORREÇÃO DE PRIMEIRA",
         "filter": "agNumberColumnFilter",
-        "maxWidth": 160,
+        "maxWidth": 230,
         "valueFormatter": {"function": "params.value + '%'"},
         "type": ["numericColumn"],
     },
     {
-        "field": "TOTAL_PROBLEMA",
-        "headerName": "TOTAL DE PROBLEMA",
+        "field": "QUANTIDADE DE PECAS",
+        "headerName": "PEÇAS TROCADAS/OS",
         "wrapHeaderText": True,
         "autoHeaderHeight": True,
         "filter": "agNumberColumnFilter",
+        "maxWidth": 230,
+        "type": ["numericColumn"],
+    },
+    # {
+    #     "field": "TOTAL_PROBLEMA",
+    #     "headerName": "MÉDIA DE TROCA DE PEÇAS PARA ESSE MODELO",
+    #     "wrapHeaderText": True,
+    #     "autoHeaderHeight": True,
+    #     "filter": "agNumberColumnFilter",
+    #     "maxWidth": 160,
+    #     "type": ["numericColumn"],
+    # },
+    {
+        "field": "QUANTIDADE DE COLABORADORES",
+        "headerName": "COLABORADORES",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
         "maxWidth": 160,
-        "type": ["numericColumn"],
-    },
-    {
-        "field": "REL_OS_PROBLEMA",
-        "headerName": "REL OS/PROBLEMA",
-        "wrapHeaderText": True,
-        "autoHeaderHeight": True,
-        "maxWidth": 160,
-        "filter": "agNumberColumnFilter",
-        "type": ["numericColumn"],
-    },
-]
-
-# Tabela Top OS Colaborador
-tbl_top_colaborador_geral_retrabalho = [
-    {"field": "NOME_COLABORADOR", "headerName": "Colaborador"},
-    {"field": "ID_COLABORADOR", "headerName": "ID", "filter": "agNumberColumnFilter"},
-    {
-        "field": "TOTAL_OS",
-        "headerName": "TOTAL DE OS",
-        "wrapHeaderText": True,
-        "autoHeaderHeight": True,
-        "filter": "agNumberColumnFilter",
-        "type": ["numericColumn"],
-    },
-    {
-        "field": "PERC_RETRABALHO",
-        "headerName": "% RETRABALHOS",
-        "filter": "agNumberColumnFilter",
-        "valueFormatter": {"function": "params.value + '%'"},
-        "type": ["numericColumn"],
-    },
-    {
-        "field": "PERC_CORRECAO_PRIMEIRA",
-        "headerName": "% CORREÇÕES DE PRIMEIRA",
-        "wrapHeaderText": True,
-        "autoHeaderHeight": True,
-        "filter": "agNumberColumnFilter",
-        "valueFormatter": {"function": "params.value + '%'"},
-        "type": ["numericColumn"],
-    },
-    {
-        "field": "TOTAL_PROBLEMA",
-        "headerName": "TOTAL DE PROBLEMA",
-        "wrapHeaderText": True,
-        "autoHeaderHeight": True,
-        "filter": "agNumberColumnFilter",
-        "type": ["numericColumn"],
-    },
-    {
-        "field": "REL_OS_PROBLEMA",
-        "headerName": "REL OS/PROBLEMA",
-        "wrapHeaderText": True,
-        "autoHeaderHeight": True,
         "filter": "agNumberColumnFilter",
         "type": ["numericColumn"],
     },
@@ -389,6 +342,7 @@ layout = dbc.Container(
                                     ),
                                     md=6,
                                 ),
+                                dcc.Store(id="store-dados-veiculos"),
                                 dmc.Space(h=10),
                                 dbc.Col(
                                     dbc.Card(
@@ -471,7 +425,7 @@ layout = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="fluent:arrow-trending-text-20-filled", width=45), width="auto"),
-                dbc.Col(html.H4("Relaçao de retrabalho / mês", className="align-self-center"), width=True),
+                dbc.Col(html.H4("Relaçao de retrabalho / mês / seção", className="align-self-center"), width=True),
             ],
             align="center",
         ),
@@ -489,9 +443,17 @@ layout = dbc.Container(
         dcc.Graph(id="graph-pecas-trocadas-por-mes"),
         dmc.Space(h=40),
         dmc.Space(h=20),
+        dbc.Row(
+            [
+                dbc.Col(DashIconify(icon="fluent:arrow-trending-wrench-20-filled", width=45), width="auto"),
+                dbc.Col(html.H4("Tabela por descrição de serviço", className="align-self-center"), width=True),
+            ],
+            align="center",
+        ),
+        dmc.Space(h=20),
         dag.AgGrid(
             enableEnterpriseModules=True,
-            id="tabela-top-os-retrabalho-geral",
+            id="tabela-descricao-de-servico",
             columnDefs=tbl_top_os_geral_retrabalho,
             rowData=[],
             defaultColDef={"filter": True, "floatingFilter": True},
@@ -729,6 +691,7 @@ layout = dbc.Container(
                             ),
                             md=4,
                         ),
+
                         dbc.Col(
                             dbc.Card(
                                 [
@@ -843,30 +806,6 @@ layout = dbc.Container(
         ),
         dbc.Row(dmc.Space(h=40)),
         dmc.Space(h=40),
-
-        # Tabela com as estatísticas gerais por Colaborador
-        dbc.Row(
-            [
-                dbc.Col(DashIconify(icon="mdi:account-wrench", width=45), width="auto"),
-                dbc.Col(
-                    html.H4("Detalhamento por tipo de OS", className="align-self-center"),
-                    width=True,
-                ),
-            ],
-            align="center",
-        ),
-        dmc.Space(h=20),
-        dag.AgGrid(
-            id="tabela-top-os-colaborador-geral",
-            columnDefs=tbl_top_colaborador_geral_retrabalho,
-            rowData=[],
-            defaultColDef={"filter": True, "floatingFilter": True},
-            columnSize="responsiveSizeToFit",
-            dashGridOptions={
-                "localeText": locale_utils.AG_GRID_LOCALE_BR,
-            },
-        ),
-        dmc.Space(h=40),
     ]
 )
 
@@ -959,7 +898,7 @@ def subquery_os(lista_os, prefix=""):
     if "TODAS" not in lista_os:
         query = f"""AND {prefix}"DESCRICAO DO SERVICO" IN ({', '.join([f"'{x}'" for x in lista_os])})"""
 
-    return query
+    return query 
 
 def subquery_veiculos(lista_veiculos, prefix=""):
     query = ""
@@ -1199,25 +1138,14 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
         value_name="PERC",
     )
 
-    #print(media_geral.head())
-    #print(media_geral)
-
     # Renomeia as colunas
     df_combinado["CATEGORIA"] = df_combinado["CATEGORIA"].replace(
         {"PERC_RETRABALHO": "RETRABALHO", "PERC_CORRECAO_PRIMEIRA": "CORRECAO_PRIMEIRA"}
     )
 
-    #print(df_combinado.head())
-
     media_geral = media_geral_retrabalho(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos)
 
-    #print(media_geral.head())
-
     df_combinado = pd.concat([df_combinado, media_geral], ignore_index=True)
-
-    #df_combinado = df_combinado[df_combinado["CODIGO DO VEICULO"] == "Geral"]
-
-    #print(df_combinado.head())
 
     # Gera o gráfico
     fig = px.line(
@@ -1645,38 +1573,17 @@ def atualiza_tabela_top_colaboradores_geral_retrabalho(datas, min_dias, lista_of
         Output("indicador-posicao-relaçao-retrabalho", "children"),
         Output("indicador-posição-veiculo-correção-primeira", "children"),
         Output("indicador-posição-veiculo-relaçao-osproblema", "children"),
-        Output("indicador-pecas-totais", "children"),
+        Output("indicador-pecas-totais", "children"), 
         Output("indicador-pecas-mes", "children"),
         Output("indicador-ranking-pecas", "children"),
         Output("indicador-oss-diferentes", "children"),
         Output("indicador-problemas-diferentes", "children"),
         Output("indicador-mecanicos-diferentes", "children"),
     ],
-    Input("store-dados-os", "data"),
+    Input("store-dados-veiculos", "data"),
 )
 def atualiza_indicadores(data):
-    # if data["vazio"]:
-    #     return ["", "", "", "", "", "", "", "", "", "", "", ""]
-
-    porcentagem_retrabalho_veiculo = '0'
-    porcentagem_correcao_primeira = '0'
-    rel_os_problemas = '0'
-    posicao_relaçao_retrabalho = '0'
-
-
-    return [
-        f"{porcentagem_retrabalho_veiculo} %",
-        f"{porcentagem_correcao_primeira} %",
-        f"{rel_os_problemas} OS/prob",
-        f"{posicao_relaçao_retrabalho}º",
-        f"{posicao_veiculo_correção_primeira}º",
-        f"{posicao_relaçao_relaçao-osproblema}º",
-        f"{pecas_mes} peças por mês",
-        f"{ranking_pecas} º",
-        f"{oss_diferentes} Os's",
-        f"{problemas_diferentess} diferentes",
-        f"{mecanicos_diferentes} diferentes",
-    ]
+    return ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"]
 
 
 @callback(
@@ -1758,7 +1665,6 @@ def plota_grafico_evolucao_quantidade_os_por_mes(datas, min_dias, lista_oficinas
     # Executa Query
     df = pd.read_sql(query, pgEngine)
 
-    #print(df.head())
   # Novo DataFrame com a soma de OS por mês
     df_soma_mes = df.groupby("MÊS", as_index=False)["QUANTIDADE_DE_OS"].sum()
 
@@ -1887,11 +1793,9 @@ def plota_grafico_pecas_trocadas_por_mes(datas, equipamento_id):
 
     try:
         # Executa a query do veículo específico
-        #print(f"Query Veículo Executada: {query_veiculo}")  # Log para depuração
         df_veiculo = pd.read_sql(query_veiculo, pgEngine)
 
         # Executa a query da média geral
-        #print(f"Query Média Geral Executada: {query_media_geral}")  # Log para depuração
         df_media_geral = pd.read_sql(query_media_geral, pgEngine)
 
         # Verifica se há dados em ambas as consultas
@@ -1932,7 +1836,7 @@ def plota_grafico_pecas_trocadas_por_mes(datas, equipamento_id):
         # Personaliza o layout
         fig.update_layout(
             title="Peças Trocadas por Mês",
-            xaxis_title="Mês",
+            xaxis_title="",
             yaxis_title="Quantidade de Peças",
             margin=dict(t=50, b=50, l=50, r=50),
             legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
@@ -1944,3 +1848,124 @@ def plota_grafico_pecas_trocadas_por_mes(datas, equipamento_id):
         # Log de erro
         print(f"Erro ao executar as consultas: {e}")
         return go.Figure().update_layout(title_text=f"Erro ao carregar os dados: {e}")
+
+@callback(
+    Output("tabela-descricao-de-servico", "rowData"),
+    [
+        Input("input-intervalo-datas-geral", "value"),
+        Input("input-select-dias-geral-retrabalho", "value"),
+        Input("input-select-oficina-visao-geral", "value"),
+        Input("input-select-secao-visao-geral", "value"),
+        Input("input-select-ordens-servico-visao-geral", "value"),
+        Input("input-select-veiculos", "value"),
+    ],
+    running=[(Output("loading-overlay-guia-geral", "visible"), True, False)],
+)
+def atualiza_tabela_top_os_geral_retrabalho(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculo):
+    # Valida input
+    if not input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculo):
+        return []
+
+    # Datas
+    data_inicio_str = datas[0]
+
+    # Remove min_dias antes para evitar que a última OS não seja retrabalho
+    data_fim = pd.to_datetime(datas[1])
+    data_fim = data_fim - pd.DateOffset(days=min_dias + 1)
+    data_fim_str = data_fim.strftime("%Y-%m-%d")
+
+    # Subqueries
+    subquery_oficinas_str = subquery_oficinas(lista_oficinas)
+    subquery_secoes_str = subquery_secoes(lista_secaos)
+    subquery_os_str = subquery_os(lista_os)
+    subquery_veiculos_str = subquery_veiculos(lista_veiculo)
+
+    inner_subquery_oficinas_str = subquery_oficinas(lista_oficinas, "main.")
+    inner_subquery_secoes_str = subquery_secoes(lista_secaos, "main.")
+    inner_subquery_os_str = subquery_os(lista_os, "main.")
+    inner_subquery_veiculos_str = subquery_veiculos(lista_veiculo, "main.")
+
+    query = f"""
+    WITH normaliza_problema AS (
+        SELECT
+            "DESCRICAO DA OFICINA",
+            "DESCRICAO DA SECAO",
+            "DESCRICAO DO SERVICO" as servico,
+            "CODIGO DO VEICULO",
+            "problem_no"
+        FROM
+            mat_view_retrabalho_{min_dias}_dias
+        WHERE
+            "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+            {subquery_oficinas_str}
+            {subquery_secoes_str}
+            {subquery_os_str}
+            {subquery_veiculos_str}
+        GROUP BY
+            "DESCRICAO DA OFICINA",
+            "DESCRICAO DA SECAO",
+            "DESCRICAO DO SERVICO",
+            "CODIGO DO VEICULO",
+            "problem_no"
+    ),
+    os_problema AS (
+        SELECT
+            "DESCRICAO DA OFICINA",
+            "DESCRICAO DA SECAO",
+            servico,
+            COUNT(*) AS num_problema
+        FROM
+            normaliza_problema
+        GROUP BY
+            "DESCRICAO DA OFICINA",
+            "DESCRICAO DA SECAO",
+            servico
+    )
+    SELECT
+        main."DESCRICAO DA OFICINA",
+        main."DESCRICAO DA SECAO",
+        main."DESCRICAO DO SERVICO",
+        COUNT(*) AS "TOTAL_OS",
+        SUM(CASE WHEN main.retrabalho THEN 1 ELSE 0 END) AS "TOTAL_RETRABALHO",
+        SUM(CASE WHEN main.correcao THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO",
+        SUM(CASE WHEN main.correcao_primeira THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO_PRIMEIRA",
+        100 * ROUND(SUM(CASE WHEN main.retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
+        100 * ROUND(SUM(CASE WHEN main.correcao THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO",
+        100 * ROUND(SUM(CASE WHEN main.correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA",
+        COALESCE(op.num_problema, 0) AS "TOTAL_PROBLEMA",
+        SUM(pg."QUANTIDADE") as "QUANTIDADE DE PECAS" ,
+        COUNT(main."COLABORADOR QUE EXECUTOU O SERVICO") as "QUANTIDADE DE COLABORADORES" 
+    FROM
+        mat_view_retrabalho_{min_dias}_dias main
+    LEFT JOIN
+        os_problema op
+    ON
+        main."DESCRICAO DA OFICINA" = op."DESCRICAO DA OFICINA"
+        AND main."DESCRICAO DA SECAO" = op."DESCRICAO DA SECAO"
+        AND main."DESCRICAO DO SERVICO" = op.servico
+    LEFT JOIN
+    	PECAS_GERAIS pg
+    ON 
+    	main."NUMERO DA OS" = pg."OS"
+    WHERE
+        main."DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+        {inner_subquery_oficinas_str}
+        {inner_subquery_secoes_str}
+        {inner_subquery_os_str}
+        {inner_subquery_veiculos_str}
+    GROUP BY
+        main."DESCRICAO DA OFICINA",
+        main."DESCRICAO DA SECAO",
+        main."DESCRICAO DO SERVICO",
+        op.num_problema
+    ORDER BY
+        "PERC_RETRABALHO" DESC;
+    """
+
+    # Executa a query
+    df = pd.read_sql(query, pgEngine)
+
+    df["REL_OS_PROBLEMA"] = round(df["TOTAL_OS"] / df["TOTAL_PROBLEMA"], 2)
+
+    return df.to_dict("records")
+
