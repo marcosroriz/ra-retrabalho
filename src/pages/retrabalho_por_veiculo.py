@@ -62,6 +62,20 @@ df_lista_os = pd.read_sql(
 lista_todas_os = df_lista_os.to_dict(orient="records")
 lista_todas_os.insert(0, {"LABEL": "TODAS"})
 
+df_lista_veiculos = pd.read_sql(
+    """
+    SELECT DISTINCT
+    "CODIGO DO VEICULO" AS "VEICULO"
+        FROM 
+        mat_view_retrabalho_10_dias mvrd
+    """,
+    pgEngine,
+)
+
+lista_todos_veiculos = df_lista_veiculos.to_dict(orient="records")
+lista_todos_veiculos.insert(0, {"VEICULO": "TODAS"})
+
+
 # Tabela Top OS de Retrabalho
 tbl_top_os_geral_retrabalho = [
     {"field": "DESCRICAO DA OFICINA", "headerName": "OFICINA", "filter": "agSetColumnFilter", "minWidth": 200},
@@ -241,6 +255,30 @@ layout = dbc.Container(
                                         [
                                             html.Div(
                                                 [
+                                                    dbc.Label("Veículos"),
+                                                    dcc.Dropdown(
+                                                        id="input-select-veiculos",
+                                                        options=[
+                                                            {"label": os["VEICULO"], "value": os["VEICULO"]}
+                                                            for os in lista_todos_veiculos
+                                                        ],
+                                                        multi=True,
+                                                        value=[lista_todos_veiculos[1]["VEICULO"]] if lista_todos_veiculos else [],
+                                                        placeholder="Selecione uma ou mais ordens de serviço...",
+                                                    )
+                                                ],
+                                                className="dash-bootstrap",
+                                            ),
+                                        ],
+                                        body=True,
+                                    ),
+                                    md=6,
+                                ),
+                                dbc.Col(
+                                    dbc.Card(
+                                        [
+                                            html.Div(
+                                                [
                                                     dbc.Label("Tempo (em dias) entre OS para retrabalho"),
                                                     dcc.Dropdown(
                                                         id="input-select-dias-geral-retrabalho",
@@ -399,7 +437,7 @@ layout = dbc.Container(
                                 align="center",
                             ),
                             # Gráfico de pizza com a relação entre Retrabalho e Correção
-                            dcc.Graph(id="graph-pizza-sintese-retrabalho-geral"),
+                            dcc.Graph(id="graph-pizza-sintese-retrabalho-geral_veiculo"),
                         ]
                     ),
                     md=4,
@@ -415,7 +453,7 @@ layout = dbc.Container(
             ],
             align="center",
         ),
-        dcc.Graph(id="graph-evolucao-retrabalho-por-garagem-por-mes"),
+        dcc.Graph(id="graph-evolucao-retrabalho-por-garagem-por-mes-veiculos"),
         dmc.Space(h=40),
         dbc.Row(
             [
@@ -425,6 +463,18 @@ layout = dbc.Container(
             align="center",
         ),
         dcc.Graph(id="graph-evolucao-retrabalho-por-secao-por-mes"),
+        dmc.Space(h=40),
+
+        #Grafico geral de peças
+        dmc.Space(h=30),
+        dbc.Row(
+            [
+                dbc.Col(DashIconify(icon="fluent:arrow-trending-wrench-20-filled", width=45), width="auto"),
+                dbc.Col(html.H4("Peças trocadas por mês", className="align-self-center"), width=True),
+            ],
+            align="center",
+        ),
+        dcc.Graph(id="graph-pecas-trocadas-por-mes"),
         dmc.Space(h=40),
         
         # Tabela com as estatísticas gerais de Retrabalho
@@ -448,7 +498,7 @@ layout = dbc.Container(
             },
         ),
         
-        # Indicadores
+# Indicadores
         dmc.Space(h=30),
         dbc.Row(
             [
@@ -465,7 +515,7 @@ layout = dbc.Container(
                                     dbc.CardBody(
                                         dmc.Group(
                                             [
-                                                dmc.Title(id="indicador-total-problemas", order=2),
+                                                dmc.Title(id="indicador-porcentagem-retrabalho-veiculo", order=2),
                                                 DashIconify(
                                                     icon="mdi:bus-alert",
                                                     width=48,
@@ -490,7 +540,7 @@ layout = dbc.Container(
                                         dmc.Group(
                                             [
                                                 dmc.Title(
-                                                    id="indicador-total-os",
+                                                    id="indicador-porcentagem-correcao-primeira",
                                                     order=2,
                                                 ),
                                                 DashIconify(
@@ -516,7 +566,7 @@ layout = dbc.Container(
                                     dbc.CardBody(
                                         dmc.Group(
                                             [
-                                                dmc.Title(id="indicador-relacao-problema-os", order=2),
+                                                dmc.Title(id="indicador-relacao-os-problema", order=2),
                                                 DashIconify(
                                                     icon="icon-park-solid:division",
                                                     width=48,
@@ -546,7 +596,7 @@ layout = dbc.Container(
                                         dmc.Group(
                                             [
                                                 dmc.Title(
-                                                    id="indicador-porcentagem-prob-com-retrabalho",
+                                                    id="indicador-posicao-relaçao-retrabalho",
                                                     order=2,
                                                 ),
                                                 DashIconify(
@@ -573,7 +623,7 @@ layout = dbc.Container(
                                         dmc.Group(
                                             [
                                                 dmc.Title(
-                                                    id="indicador-porcentagem-retrabalho",
+                                                    id="indicador-posição-veiculo-correção-primeira",
                                                     order=2,
                                                 ),
                                                 DashIconify(
@@ -599,7 +649,7 @@ layout = dbc.Container(
                                     dbc.CardBody(
                                         dmc.Group(
                                             [
-                                                dmc.Title(id="indicador-num-medio-dias-correcao", order=2),
+                                                dmc.Title(id="indicador-posição-veiculo-relaçao-osproblema", order=2),
                                                 DashIconify(
                                                     icon="ic:round-sort",
                                                     width=48,
@@ -629,7 +679,7 @@ layout = dbc.Container(
                                         dmc.Group(
                                             [
                                                 dmc.Title(
-                                                    id="indicador-porcentagem-prob-com-retrabalho",
+                                                    id="indicador-pecas-totais",
                                                     order=2,
                                                 ),
                                                 DashIconify(
@@ -656,7 +706,7 @@ layout = dbc.Container(
                                         dmc.Group(
                                             [
                                                 dmc.Title(
-                                                    id="indicador-porcentagem-retrabalho",
+                                                    id="indicador-pecas-mes",
                                                     order=2,
                                                 ),
                                                 DashIconify(
@@ -682,7 +732,7 @@ layout = dbc.Container(
                                     dbc.CardBody(
                                         dmc.Group(
                                             [
-                                                dmc.Title(id="indicador-num-medio-dias-correcao", order=2),
+                                                dmc.Title(id="indicador-ranking-pecas", order=2),
                                                 DashIconify(
                                                     icon="mdi:podium",
                                                     width=48,
@@ -712,7 +762,7 @@ layout = dbc.Container(
                                         dmc.Group(
                                             [
                                                 dmc.Title(
-                                                    id="indicador-porcentagem-prob-com-retrabalho",
+                                                    id="indicador-oss-diferentes",
                                                     order=2,
                                                 ),
                                                 DashIconify(
@@ -739,7 +789,7 @@ layout = dbc.Container(
                                         dmc.Group(
                                             [
                                                 dmc.Title(
-                                                    id="indicador-porcentagem-retrabalho",
+                                                    id="indicador-problemas-diferentes",
                                                     order=2,
                                                 ),
                                                 DashIconify(
@@ -765,7 +815,7 @@ layout = dbc.Container(
                                     dbc.CardBody(
                                         dmc.Group(
                                             [
-                                                dmc.Title(id="indicador-num-medio-dias-correcao", order=2),
+                                                dmc.Title(id="indicador-mecanicos-diferentes", order=2),
                                                 DashIconify(
                                                     icon="mdi:account-wrench",
                                                     width=48,
@@ -826,7 +876,7 @@ layout = dbc.Container(
 
 
 # Função para validar o input
-def input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os):
+def input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
     if datas is None or not datas or None in datas or min_dias is None:
         return False
 
@@ -837,6 +887,9 @@ def input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os):
         return False
 
     if lista_os is None or not lista_os or None in lista_os:
+        return False
+    
+    if lista_veiculos is None or not lista_veiculos or None in lista_veiculos:
         return False
 
     return True
@@ -905,10 +958,28 @@ def subquery_os(lista_os, prefix=""):
 
     return query
 
+def subquery_veiculos(lista_veiculos, prefix=""):
+    query = ""
+    if "TODAS" not in lista_veiculos:
+        query = f"""AND {prefix}"CODIGO DO VEICULO" IN ({', '.join([f"'{x}'" for x in lista_veiculos])})"""
 
-def plota_grafico_pizza_sintese_geral(datas, min_dias, lista_oficinas, lista_secaos, lista_os):
+    return query
+
+# Callback para o grafico de síntese do retrabalho
+@callback(
+    Output("graph-pizza-sintese-retrabalho-geral_veiculo", "figure"),
+    [
+        Input("input-intervalo-datas-geral", "value"),
+        Input("input-select-dias-geral-retrabalho", "value"),
+        Input("input-select-oficina-visao-geral", "value"),
+        Input("input-select-secao-visao-geral", "value"),
+        Input("input-select-ordens-servico-visao-geral", "value"),
+        Input("input-select-veiculos", "value"),
+    ],
+)
+def plota_grafico_pizza_sintese_geral(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
     # Valida input
-    if not input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os):
+    if not input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
         return go.Figure()
 
     # Datas
@@ -923,6 +994,8 @@ def plota_grafico_pizza_sintese_geral(datas, min_dias, lista_oficinas, lista_sec
     subquery_oficinas_str = subquery_oficinas(lista_oficinas)
     subquery_secoes_str = subquery_secoes(lista_secaos)
     subquery_os_str = subquery_os(lista_os)
+    subquery_veiculos_os = subquery_veiculos(lista_veiculos)
+
 
     # Query
     query = f"""
@@ -940,6 +1013,7 @@ def plota_grafico_pizza_sintese_geral(datas, min_dias, lista_oficinas, lista_sec
             {subquery_oficinas_str}
             {subquery_secoes_str}
             {subquery_os_str}
+            {subquery_veiculos_os}
     """
 
     # Executa a query
@@ -989,9 +1063,15 @@ def plota_grafico_pizza_sintese_geral(datas, min_dias, lista_oficinas, lista_sec
     return fig
 
 
-def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista_oficinas, lista_secaos, lista_os):
-    # Valida input
-    if not input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os):
+
+
+
+
+
+
+def media_geral_retrabalho(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
+    # Chama a função input_valido com todos os parâmetros
+    if not input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
         return go.Figure()
 
     # Datas
@@ -1010,9 +1090,9 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
     query = f"""
     SELECT
         to_char(to_timestamp("DATA DE FECHAMENTO DO SERVICO", 'YYYY-MM-DD"T"HH24:MI:SS'), 'YYYY-MM') AS year_month,
-        "DESCRICAO DA OFICINA",
         100 * ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
-        100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA"
+        100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA",
+        "CODIGO DO VEICULO"
     FROM
         mat_view_retrabalho_{min_dias}_dias
     WHERE
@@ -1021,7 +1101,89 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
         {subquery_secoes_str}
         {subquery_os_str}
     GROUP BY
-        year_month, "DESCRICAO DA OFICINA"
+        year_month, "CODIGO DO VEICULO"
+    ORDER BY
+        year_month;
+    """
+
+    # Executa query
+    df = pd.read_sql(query, pgEngine)
+
+    # Arruma dt
+    df["year_month_dt"] = pd.to_datetime(df["year_month"], format="%Y-%m", errors="coerce")
+
+    # Funde (melt) colunas de retrabalho e correção
+    # Funde (melt) colunas de retrabalho e correção
+    df_combinado = df.melt(
+        id_vars=["year_month_dt", "CODIGO DO VEICULO"],
+        value_vars=["PERC_RETRABALHO", "PERC_CORRECAO_PRIMEIRA"],
+        var_name="CATEGORIA",
+        value_name="PERC",
+    )
+
+    df_combinado["CODIGO DO VEICULO"] = "Geral"
+
+    # Renomeia as colunas
+    df_combinado["CATEGORIA"] = df_combinado["CATEGORIA"].replace(
+        {"PERC_RETRABALHO": "RETRABALHO", "PERC_CORRECAO_PRIMEIRA": "CORRECAO_PRIMEIRA"}
+    )
+
+    df_media = df_combinado.groupby(["year_month_dt", "CATEGORIA"]).agg(
+        PERC=('PERC', 'mean')
+    ).reset_index()
+
+    df_media["CODIGO DO VEICULO"] = "Geral"
+
+    return df_media
+
+
+@callback(
+    Output("graph-evolucao-retrabalho-por-garagem-por-mes-veiculos", "figure"),
+    [
+        Input("input-intervalo-datas-geral", "value"),
+        Input("input-select-dias-geral-retrabalho", "value"),
+        Input("input-select-oficina-visao-geral", "value"),
+        Input("input-select-secao-visao-geral", "value"),
+        Input("input-select-ordens-servico-visao-geral", "value"),
+        Input("input-select-veiculos", "value"),
+    ],
+)
+def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
+    # Valida input
+    if not input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
+        return go.Figure()
+
+    # Datas
+    data_inicio_str = datas[0]
+
+    # Remove min_dias antes para evitar que a última OS não seja retrabalho
+    data_fim = pd.to_datetime(datas[1])
+    data_fim = data_fim - pd.DateOffset(days=min_dias + 1)
+    data_fim_str = data_fim.strftime("%Y-%m-%d")
+
+    # Subqueries
+    subquery_oficinas_str = subquery_oficinas(lista_oficinas)
+    subquery_secoes_str = subquery_secoes(lista_secaos)
+    subquery_os_str = subquery_os(lista_os)
+    subquery_veiculos_str = subquery_veiculos(lista_veiculos)
+
+    query = f"""
+    SELECT
+        to_char(to_timestamp("DATA DE FECHAMENTO DO SERVICO", 'YYYY-MM-DD"T"HH24:MI:SS'), 'YYYY-MM') AS year_month,
+        100 * ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
+        100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA",
+        "CODIGO DO VEICULO"
+    FROM
+        mat_view_retrabalho_{min_dias}_dias
+    WHERE
+        "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+        {subquery_oficinas_str} 
+        {subquery_secoes_str}
+        {subquery_os_str}
+        {subquery_veiculos_str}
+
+    GROUP BY
+        year_month, "CODIGO DO VEICULO"
     ORDER BY
         year_month;
     """
@@ -1034,26 +1196,41 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
 
     # Funde (melt) colunas de retrabalho e correção
     df_combinado = df.melt(
-        id_vars=["year_month_dt", "DESCRICAO DA OFICINA"],
+        id_vars=["year_month_dt", "CODIGO DO VEICULO"],
         value_vars=["PERC_RETRABALHO", "PERC_CORRECAO_PRIMEIRA"],
         var_name="CATEGORIA",
         value_name="PERC",
     )
+
+    #print(media_geral.head())
+    #print(media_geral)
 
     # Renomeia as colunas
     df_combinado["CATEGORIA"] = df_combinado["CATEGORIA"].replace(
         {"PERC_RETRABALHO": "RETRABALHO", "PERC_CORRECAO_PRIMEIRA": "CORRECAO_PRIMEIRA"}
     )
 
+    #print(df_combinado.head())
+
+    media_geral = media_geral_retrabalho(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos)
+
+    print(media_geral.head())
+
+    df_combinado = pd.concat([df_combinado, media_geral], ignore_index=True)
+
+    #df_combinado = df_combinado[df_combinado["CODIGO DO VEICULO"] == "Geral"]
+
+    #print(df_combinado.head())
+
     # Gera o gráfico
     fig = px.line(
         df_combinado,
         x="year_month_dt",
         y="PERC",
-        color="DESCRICAO DA OFICINA",
+        color="CODIGO DO VEICULO",
         facet_col="CATEGORIA",
         facet_col_spacing=0.05,  # Espaçamento entre os gráficos
-        labels={"DESCRICAO DA OFICINA": "Oficina", "year_month_dt": "Ano-Mês", "PERC": "%"},
+        labels={"CODIGO DO VEICULO": "Veiculo", "year_month_dt": "Ano-Mês", "PERC": "%"},
         markers=True,
     )
 
@@ -1078,7 +1255,7 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
     fig.update_layout(
         annotations=[
             dict(
-                text="OS por mês",
+                text="Retrabalho(%) por veículo",
                 x=0.25,  # Posição X para o primeiro plot
                 y=1.05,  # Posição Y (em cima do plot)
                 xref="paper",
@@ -1087,7 +1264,7 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
                 font=dict(size=16),
             ),
             dict(
-                text="Diferentes OS por mês",
+                text="Correção de primeira(%) por veículo",
                 x=0.75,  # Posição X para o segundo plot
                 y=1.05,  # Posição Y (em cima do plot)
                 xref="paper",
@@ -1451,3 +1628,161 @@ def atualiza_tabela_top_colaboradores_geral_retrabalho(datas, min_dias, lista_of
         df.at[ix, "ID_COLABORADOR"] = int(colaborador)
 
     return df.to_dict("records")
+
+
+@callback(
+    [
+        Output("indicador-porcentagem-retrabalho-veiculo", "children"),
+        Output("indicador-porcentagem-correcao-primeira", "children"),
+        Output("indicador-relacao-os-problema", "children"),
+        Output("indicador-posicao-relaçao-retrabalho", "children"),
+        Output("indicador-posição-veiculo-correção-primeira", "children"),
+        Output("indicador-posição-veiculo-relaçao-osproblema", "children"),
+        Output("indicador-pecas-totais", "children"),
+        Output("indicador-pecas-mes", "children"),
+        Output("indicador-ranking-pecas", "children"),
+        Output("indicador-oss-diferentes", "children"),
+        Output("indicador-problemas-diferentes", "children"),
+        Output("indicador-mecanicos-diferentes", "children"),
+    ],
+    Input("store-dados-os", "data"),
+)
+def atualiza_indicadores(data):
+    # if data["vazio"]:
+    #     return ["", "", "", "", "", "", "", "", "", "", "", ""]
+
+    porcentagem_retrabalho_veiculo = '0'
+    porcentagem_correcao_primeira = '0'
+    rel_os_problemas = '0'
+    posicao_relaçao_retrabalho = '0'
+
+
+    return [
+        f"{porcentagem_retrabalho_veiculo} %",
+        f"{porcentagem_correcao_primeira} %",
+        f"{rel_os_problemas} OS/prob",
+        f"{posicao_relaçao_retrabalho}º",
+        f"{posicao_veiculo_correção_primeira}º",
+        f"{posicao_relaçao_relaçao-osproblema}º",
+        f"{pecas_mes} peças por mês",
+        f"{ranking_pecas} º",
+        f"{oss_diferentes} Os's",
+        f"{problemas_diferentess} diferentes",
+        f"{mecanicos_diferentes} diferentes",
+    ]
+
+@callback(
+    Output("graph-pecas-trocadas-por-mes", "figure"),
+    [
+        Input("input-intervalo-datas-geral", "value"),
+        Input("input-select-veiculos", "value"),
+    ],
+)
+def plota_grafico_pecas_trocadas_por_mes(datas, equipamento_id):
+    # Valida input
+    if not datas or not equipamento_id:
+        return go.Figure().update_layout(title_text="Parâmetros inválidos")
+
+    # Garante que o equipamento_id é um valor único (não lista)
+    if isinstance(equipamento_id, list):
+        equipamento_id = equipamento_id[0]  # Extrai o primeiro elemento da lista
+
+    # Converte equipamento_id para texto, caso seja um número
+    equipamento_id = f"'{equipamento_id}'"  # Adiciona aspas simples para garantir compatibilidade com o tipo text
+
+    # Datas
+    data_inicio_str = datas[0]
+    data_fim_str = datas[1]
+
+    # Query para buscar peças trocadas por mês do veículo específico
+    query_veiculo = f"""
+    SELECT 
+        to_char("DATA"::DATE, 'YYYY-MM') AS year_month,
+        SUM("QUANTIDADE") AS total_pecas
+    FROM 
+        pecas_gerais
+    WHERE 
+        "EQUIPAMENTO" = {equipamento_id}
+        AND "DATA"::DATE BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+        AND "GRUPO" NOT IN ('COMBUSTIVEIS E LUBRIFICANTES', 'Lubrificantes e Combustiveis Especiais')
+    GROUP BY 
+        year_month
+    ORDER BY 
+        year_month;
+    """
+
+    # Query para calcular a média geral de peças trocadas por mês de todos os veículos
+    query_media_geral = f"""
+    SELECT 
+        to_char("DATA"::DATE, 'YYYY-MM') AS year_month,
+        SUM("QUANTIDADE") / COUNT(DISTINCT "EQUIPAMENTO") AS media_geral
+    FROM 
+        pecas_gerais
+    WHERE 
+        "DATA"::DATE BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+        AND "GRUPO" NOT IN ('COMBUSTIVEIS E LUBRIFICANTES', 'Lubrificantes e Combustiveis Especiais')
+    GROUP BY 
+        year_month
+    ORDER BY 
+        year_month;
+    """
+
+    try:
+        # Executa a query do veículo específico
+        print(f"Query Veículo Executada: {query_veiculo}")  # Log para depuração
+        df_veiculo = pd.read_sql(query_veiculo, pgEngine)
+
+        # Executa a query da média geral
+        print(f"Query Média Geral Executada: {query_media_geral}")  # Log para depuração
+        df_media_geral = pd.read_sql(query_media_geral, pgEngine)
+
+        # Verifica se há dados em ambas as consultas
+        if df_veiculo.empty and df_media_geral.empty:
+            return go.Figure().update_layout(
+                title_text="Nenhum dado disponível para o equipamento e intervalo selecionados."
+            )
+
+        # Converte a coluna de datas para datetime
+        df_veiculo["year_month_dt"] = pd.to_datetime(df_veiculo["year_month"], format="%Y-%m", errors="coerce")
+        df_media_geral["year_month_dt"] = pd.to_datetime(df_media_geral["year_month"], format="%Y-%m", errors="coerce")
+
+        # Cria o gráfico de linhas
+        fig = go.Figure()
+
+        # Adiciona a linha para o veículo específico
+        fig.add_trace(
+            go.Scatter(
+                x=df_veiculo["year_month_dt"],
+                y=df_veiculo["total_pecas"],
+                mode="lines+markers",
+                name="Peças do Veículo",
+                line=dict(color="blue"),
+            )
+        )
+
+        # Adiciona a linha para a média geral
+        fig.add_trace(
+            go.Scatter(
+                x=df_media_geral["year_month_dt"],
+                y=df_media_geral["media_geral"],
+                mode="lines",
+                name="Média Geral de Todos os Veículos",
+                line=dict(color="orange", dash="dot"),
+            )
+        )
+
+        # Personaliza o layout
+        fig.update_layout(
+            title="Peças Trocadas por Mês",
+            xaxis_title="Mês",
+            yaxis_title="Quantidade de Peças",
+            margin=dict(t=50, b=50, l=50, r=50),
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
+        )
+
+        return fig
+
+    except Exception as e:
+        # Log de erro
+        print(f"Erro ao executar as consultas: {e}")
+        return go.Figure().update_layout(title_text=f"Erro ao carregar os dados: {e}")
