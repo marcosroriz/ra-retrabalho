@@ -19,6 +19,7 @@ import dash
 from dash import Dash, html, dcc, callback, Input, Output, State
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # Importar bibliotecas do bootstrap e ag-grid
 import dash_bootstrap_components as dbc
@@ -436,6 +437,7 @@ layout = dbc.Container(
                                 ],
                                 align="center",
                             ),
+                            dmc.Space(h=30),
                             # Gráfico de pizza com a relação entre Retrabalho e Correção
                             dcc.Graph(id="graph-pizza-sintese-retrabalho-geral_veiculo"),
                         ]
@@ -444,12 +446,23 @@ layout = dbc.Container(
                 ),
             ]
         ),
+        dmc.Space(h=40),
+        ##Gráfico de Quantidade de OS / mes
+        dbc.Row(
+            [
+                dbc.Col(DashIconify(icon="fluent:arrow-trending-text-20-filled", width=45), width="auto"),
+                dbc.Col(html.H4("Relaçao de OS / mês", className="align-self-center"), width=True),
+            ],
+            align="center",
+        ),
+        dcc.Graph(id="graph-evolucao-os-mes-veiculo"),
+        dmc.Space(h=40),
         # Graficos de Evolução do Retrabalho por Garagem e Seção
         dmc.Space(h=30),
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="fluent:arrow-trending-wrench-20-filled", width=45), width="auto"),
-                dbc.Col(html.H4("Relações OS / mês", className="align-self-center"), width=True),
+                dbc.Col(html.H4("Relações de retrabalho / mês", className="align-self-center"), width=True),
             ],
             align="center",
         ),
@@ -462,9 +475,8 @@ layout = dbc.Container(
             ],
             align="center",
         ),
-        dcc.Graph(id="graph-evolucao-retrabalho-por-secao-por-mes"),
+        dcc.Graph(id="graph-evolucao-retrabalho-por-secao-por-mes-veiculos"),
         dmc.Space(h=40),
-
         #Grafico geral de peças
         dmc.Space(h=30),
         dbc.Row(
@@ -476,15 +488,6 @@ layout = dbc.Container(
         ),
         dcc.Graph(id="graph-pecas-trocadas-por-mes"),
         dmc.Space(h=40),
-        
-        # Tabela com as estatísticas gerais de Retrabalho
-        dbc.Row(
-            [
-                dbc.Col(DashIconify(icon="fluent:line-horizontal-4-search-16-filled", width=45), width="auto"),
-                dbc.Col(html.H4("AQUI DEVE SER UM GRAFICO DE PEÇAS TROCADAS POR MÊS", className="align-self-center"), width=True),
-            ],
-            align="center",
-        ),
         dmc.Space(h=20),
         dag.AgGrid(
             enableEnterpriseModules=True,
@@ -1049,7 +1052,7 @@ def plota_grafico_pizza_sintese_geral(datas, min_dias, lista_oficinas, lista_sec
     # Remove o espaçamento em torno do gráfico
     fig.update_layout(
         margin=dict(t=20, b=0),  # Remove as margens
-        height=325,  # Ajuste conforme necessário
+        height=350,  # Ajuste conforme necessário
         legend=dict(
             orientation="h",  # Legenda horizontal
             yanchor="top",  # Ancora no topo
@@ -1061,12 +1064,6 @@ def plota_grafico_pizza_sintese_geral(datas, min_dias, lista_oficinas, lista_sec
 
     # Retorna o gráfico
     return fig
-
-
-
-
-
-
 
 
 def media_geral_retrabalho(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
@@ -1214,7 +1211,7 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
 
     media_geral = media_geral_retrabalho(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos)
 
-    print(media_geral.head())
+    #print(media_geral.head())
 
     df_combinado = pd.concat([df_combinado, media_geral], ignore_index=True)
 
@@ -1283,9 +1280,21 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
 
     return fig
 
-def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias, lista_oficinas, lista_secaos, lista_os):
+
+@callback(
+    Output("graph-evolucao-retrabalho-por-secao-por-mes-veiculos", "figure"),
+    [
+        Input("input-intervalo-datas-geral", "value"),
+        Input("input-select-dias-geral-retrabalho", "value"),
+        Input("input-select-oficina-visao-geral", "value"),
+        Input("input-select-secao-visao-geral", "value"),
+        Input("input-select-ordens-servico-visao-geral", "value"),
+        Input("input-select-veiculos", "value"),
+    ],
+)
+def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
     # Valida input
-    if not input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os):
+    if not input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
         return go.Figure()
 
     # Datas
@@ -1300,6 +1309,7 @@ def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias, lista_o
     subquery_oficinas_str = subquery_oficinas(lista_oficinas)
     subquery_secoes_str = subquery_secoes(lista_secaos)
     subquery_os_str = subquery_os(lista_os)
+    subquery_veiculos_str = subquery_veiculos(lista_veiculos)
 
     query = f"""
     SELECT
@@ -1314,6 +1324,7 @@ def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias, lista_o
         {subquery_oficinas_str}
         {subquery_secoes_str}
         {subquery_os_str}
+        {subquery_veiculos_str}
     GROUP BY
         year_month, "DESCRICAO DA SECAO"
     ORDER BY
@@ -1342,7 +1353,6 @@ def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias, lista_o
     # Multiplica por 100
     # df_combinado["PERC"] = df_combinado["PERC"] * 100
 
-    # Gera o gráfico
     fig = px.line(
         df_combinado,
         x="year_month_dt",
@@ -1351,13 +1361,12 @@ def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias, lista_o
         facet_col="CATEGORIA",
         facet_col_spacing=0.05,  # Espaçamento entre os gráficos
         labels={"DESCRICAO DA SECAO": "Seção", "year_month_dt": "Ano-Mês", "PERC": "%"},
-        markers=True,
     )
 
-    # Coloca % no eixo y
+    # Ajusta o formato do eixo Y para exibir valores como porcentagem
     fig.update_yaxes(tickformat=".0f%")
 
-    # Renomeia o eixo y
+    # Personaliza o layout do gráfico
     fig.update_layout(
         yaxis=dict(
             title="% Retrabalho",
@@ -1368,16 +1377,16 @@ def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias, lista_o
             side="right",
             anchor="x",
         ),
-        margin=dict(b=100),
+        margin=dict(b=100),  # Espaço na parte inferior
     )
 
-    # Titulo
+    # Adiciona títulos específicos para cada gráfico
     fig.update_layout(
         annotations=[
             dict(
                 text="Retrabalho por seção (% das OS)",
                 x=0.25,  # Posição X para o primeiro plot
-                y=1.05,  # Posição Y (em cima do plot)
+                y=1.05,  # Posição Y acima do gráfico
                 xref="paper",
                 yref="paper",
                 showarrow=False,
@@ -1386,7 +1395,7 @@ def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias, lista_o
             dict(
                 text="Correção de primeira por seção (% das OS)",
                 x=0.75,  # Posição X para o segundo plot
-                y=1.05,  # Posição Y (em cima do plot)
+                y=1.05,  # Posição Y acima do gráfico
                 xref="paper",
                 yref="paper",
                 showarrow=False,
@@ -1395,16 +1404,14 @@ def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias, lista_o
         ]
     )
 
-    # Gera ticks todo mês
+    # Configura os ticks no eixo X para exibição mensal
     fig.update_xaxes(dtick="M1", tickformat="%Y-%b", title_text="Ano-Mês", title_standoff=90)
 
-    # Aumenta o espaçamento do titulo
-    fig.for_each_xaxis(lambda axis: axis.update(title_standoff=90))  # Increase standoff for spacing
+    # Ajusta o espaçamento dos títulos do eixo X
+    fig.for_each_xaxis(lambda axis: axis.update(title_standoff=90))
 
-    # fig.update_layout(
-    #     height=400,  # Define a altura do gráfico
-    # )
 
+    # Exibe o gráfico
     return fig
 
 def atualiza_tabela_top_os_geral_retrabalho(datas, min_dias, lista_oficinas, lista_secaos, lista_os):
@@ -1671,6 +1678,157 @@ def atualiza_indicadores(data):
         f"{mecanicos_diferentes} diferentes",
     ]
 
+
+@callback(
+    Output("graph-evolucao-os-mes-veiculo", "figure"),
+    [
+        Input("input-intervalo-datas-geral", "value"),
+        Input("input-select-dias-geral-retrabalho", "value"),
+        Input("input-select-oficina-visao-geral", "value"),
+        Input("input-select-secao-visao-geral", "value"),
+        Input("input-select-ordens-servico-visao-geral", "value"),
+        Input("input-select-veiculos", "value"),
+    ],
+)
+def plota_grafico_evolucao_quantidade_os_por_mes(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
+    # Valida input
+    if not input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
+        return go.Figure()
+
+    # Datas
+    data_inicio_str = datas[0]
+
+    # Remove min_dias antes para evitar que a última OS não seja retrabalho
+    data_fim = pd.to_datetime(datas[1])
+    data_fim = data_fim - pd.DateOffset(days=min_dias + 1)
+    data_fim_str = data_fim.strftime("%Y-%m-%d")
+
+    # Subqueries
+    subquery_oficinas_str = subquery_oficinas(lista_oficinas)
+    subquery_secoes_str = subquery_secoes(lista_secaos)
+    subquery_os_str = subquery_os(lista_os)
+    subquery_veiculos_str = subquery_veiculos(lista_veiculos)
+
+
+    query = f"""
+        SELECT 
+            "CODIGO DO VEICULO",
+            DATE_TRUNC('month', "DATA DE FECHAMENTO DO SERVICO"::timestamp) AS "MÊS",
+            COUNT("NUMERO DA OS") AS "QUANTIDADE_DE_OS",
+            "DESCRICAO DO SERVICO"
+        FROM
+            os_dados
+        WHERE
+            "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+            {subquery_oficinas_str}
+            {subquery_secoes_str}
+            {subquery_os_str}
+            {subquery_veiculos_str}
+        GROUP BY
+            "CODIGO DO VEICULO",
+            DATE_TRUNC('month', "DATA DE FECHAMENTO DO SERVICO"::timestamp),
+            "DESCRICAO DO SERVICO"
+        ORDER BY
+            "CODIGO DO VEICULO",
+            "MÊS";
+    """
+
+
+    query1 = f"""
+        SELECT 
+            "CODIGO DO VEICULO",
+            DATE_TRUNC('month', "DATA DE FECHAMENTO DO SERVICO") AS "MÊS",
+            COUNT("NUMERO DA OS") AS "QUANTIDADE_DE_OS"
+        FROM
+            os_dados
+        WHERE
+            "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+            {subquery_oficinas_str}
+            {subquery_secoes_str}
+            {subquery_os_str}
+            {subquery_veiculos_str}
+        GROUP BY
+            "CODIGO DO VEICULO",
+            DATE_TRUNC('month', "DATA DE FECHAMENTO DO SERVICO")
+        ORDER BY
+            "CODIGO DO VEICULO",
+            "MÊS";
+    """
+
+    # Executa Query
+    df = pd.read_sql(query, pgEngine)
+
+    #print(df.head())
+  # Novo DataFrame com a soma de OS por mês
+    df_soma_mes = df.groupby("MÊS", as_index=False)["QUANTIDADE_DE_OS"].sum()
+
+    # Gráfico 1: Quantidade de OS por Veículo
+    fig1 = px.line(
+        df_soma_mes,
+        x="MÊS",
+        y="QUANTIDADE_DE_OS",
+        labels={"MÊS": "Ano-Mês", "QUANTIDADE_DE_OS": "Quantidade de OS"},
+    )
+
+    fig1.update_traces(mode="lines+markers")  # Adiciona pontos às linhas
+    fig1.update_layout(
+        title="Quantidade de Ordens de Serviço por Veículo e por mês",
+        xaxis_title="Ano-Mês",
+        yaxis_title="Quantidade de OS",
+        margin=dict(b=100),
+    )
+
+    # Processamento de dados para o segundo gráfico
+    df_unico = df.drop_duplicates(subset=["DESCRICAO DO SERVICO"], keep="first")
+    df_unico["DESCRICAO DO SERVICO"] = df_unico["DESCRICAO DO SERVICO"].str.strip()
+    df_unico_soma = df_unico.groupby("MÊS", as_index=False)["QUANTIDADE_DE_OS"].sum()
+
+    # Gráfico 2: Soma de OS por Mês
+    fig2 = px.line(
+        df_unico_soma,
+        x="MÊS",
+        y="QUANTIDADE_DE_OS",
+        labels={"MÊS": "Ano-Mês", "QUANTIDADE_DE_OS": "Quantidade de OS"},
+    )
+
+    fig2.update_traces(mode="lines+markers", line_color="rgb(0, 123, 255)")  # Adiciona pontos às linhas e ajusta a cor
+    fig2.update_layout(
+        title="Quantidade de Ordens de Serviço diferentes por Veículo e por mês",
+        xaxis_title="Ano-Mês",
+        yaxis_title="Quantidade de OS",
+        showlegend=False,  # Sem legendas no segundo gráfico
+    )
+
+    # Combina os gráficos em uma única visualização lado a lado
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        subplot_titles=[
+            "Quantidade de Ordens de Serviço por Veículo e por mês",
+            "Quantidade de Ordens de Serviço diferentes por Veículo e por mês",
+        ],
+    )
+
+    # Adiciona os traços de cada gráfico
+    fig.add_traces(fig1.data, rows=1, cols=1)
+    fig.add_traces(fig2.data, rows=1, cols=2)
+
+    # Configuração geral do layout
+    fig.update_layout(
+        title="Análise de Ordens de Serviço",
+        showlegend=True,  # Exibe a legenda geral para o primeiro gráfico
+        margin=dict(t=50, b=100),
+    )
+
+    # Configuração dos eixos para cada subplot
+    fig.update_xaxes(title_text="Ano-Mês", row=1, col=1)
+    fig.update_yaxes(title_text="Quantidade de OS", row=1, col=1)
+    fig.update_xaxes(title_text="Ano-Mês", row=1, col=2)
+    fig.update_yaxes(title_text="Quantidade de OS", row=1, col=2)
+
+    return fig
+
+
 @callback(
     Output("graph-pecas-trocadas-por-mes", "figure"),
     [
@@ -1729,11 +1887,11 @@ def plota_grafico_pecas_trocadas_por_mes(datas, equipamento_id):
 
     try:
         # Executa a query do veículo específico
-        print(f"Query Veículo Executada: {query_veiculo}")  # Log para depuração
+        #print(f"Query Veículo Executada: {query_veiculo}")  # Log para depuração
         df_veiculo = pd.read_sql(query_veiculo, pgEngine)
 
         # Executa a query da média geral
-        print(f"Query Média Geral Executada: {query_media_geral}")  # Log para depuração
+        #print(f"Query Média Geral Executada: {query_media_geral}")  # Log para depuração
         df_media_geral = pd.read_sql(query_media_geral, pgEngine)
 
         # Verifica se há dados em ambas as consultas
