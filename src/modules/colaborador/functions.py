@@ -104,6 +104,31 @@ def generate_grafico_evolucao(dados):
 
     return fig
 
+def generate_grafico_evolucao_nota(dados):
+    '''Plota gráfico de evolução das médias de retrabalho e correção de primeira por mês'''
+
+    print(dados)
+    # Gera o gráfico
+    fig = px.line(
+        dados,
+        x="year_month",
+        y="nota_media",
+        color="escopo",
+        facet_col_spacing=0.05,  # Espaçamento entre os gráficos
+        labels={"escopo": "Oficina", "year_month_dt": "Ano-Mês"},
+        markers=True,
+    )
+
+    # Gera ticks todo mês
+    fig.update_xaxes(dtick="M1", tickformat="%Y-%b", title_text="Ano-Mês", title_standoff=90)
+
+    # Aumenta o espaçamento do titulo
+    fig.for_each_xaxis(lambda axis: axis.update(title_standoff=90))  # Increase standoff for spacing
+
+
+
+    return fig
+
 def grafico_pizza_colaborador(data):
     '''Retorna o grafico de pizza geral'''
     # Prepara os dados para o gráfico

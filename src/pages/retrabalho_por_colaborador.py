@@ -442,31 +442,6 @@ layout = dbc.Container(
                             dbc.CardBody(
                                 dmc.Group(
                                     [
-                                        dmc.Title(id="indicador-correcao-de-primeira", order=2),
-                                        DashIconify(
-                                            icon="game-icons:time-bomb",
-                                            width=48,
-                                            color="black",
-                                        ),
-                                    ],
-                                    justify="center",
-                                    mt="md",
-                                    mb="xs",
-                                ),
-                            ),
-                            dbc.CardFooter("OSs com correção de primeira"),
-                        ],
-                        class_name="card-box-shadow",
-                    ),
-                    md=4,
-                    style={"margin-bottom": "20px"},
-                ),
-                dbc.Col(
-                    dbc.Card(
-                        [
-                            dbc.CardBody(
-                                dmc.Group(
-                                    [
                                         dmc.Title(id="indicador-rank-os", order=2),
                                         DashIconify(
                                             icon="mdi:account-wrench",
@@ -511,6 +486,56 @@ layout = dbc.Container(
                     md=4,
                     style={"margin-bottom": "20px"},
                 ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(id="indicador-nota-colaborador", order=2),
+                                        DashIconify(
+                                            icon="material-symbols-light:bar-chart-4-bars-rounded",
+                                            width=48,
+                                            color="black",
+                                        ),
+                                    ],
+                                    justify="center",
+                                    mt="md",
+                                    mb="xs",
+                                ),
+                            ),
+                            dbc.CardFooter("% das OS são retrabalho"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=4,
+                    style={"margin-bottom": "20px"},
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(id="indicador-correcao-de-primeira", order=2),
+                                        DashIconify(
+                                            icon="game-icons:time-bomb",
+                                            width=48,
+                                            color="black",
+                                        ),
+                                    ],
+                                    justify="center",
+                                    mt="md",
+                                    mb="xs",
+                                ),
+                            ),
+                            dbc.CardFooter("OSs com correção de primeira"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=4,
+                    style={"margin-bottom": "20px"},
+                ),
             ],
             justify="center",
         ),
@@ -527,6 +552,16 @@ layout = dbc.Container(
             align="center",
         ),
         dcc.Graph(id="graph-evolucao-retrabalho-por-mes"),
+        dbc.Row(dmc.Space(h=20)),
+        html.Hr(),
+        dbc.Row(
+            [
+                dbc.Col(DashIconify(icon="fluent:arrow-trending-text-20-filled", width=45), width="auto"),
+                dbc.Col(html.H4("Evolução das Métricas: Nota media ", className="align-self-center"), width=True),
+            ],
+            align="center",
+        ),
+        dcc.Graph(id="graph-evolucao-nota-por-mes"),
         dbc.Row(dmc.Space(h=20)),
         html.Hr(),
         dbc.Row(
@@ -606,6 +641,8 @@ def corrige_input_ordem_servico(lista_os, lista_secaos):
         Output("indicador-retrabalho", "children"),
         Output("indicador-rank-servico", "children"),
         Output("indicador-rank-os", "children"),
+        Output("indicador-nota-colaborador", "children"),
+        
     ],
     [
         Input("input-lista-colaborador", "value"),
@@ -621,35 +658,20 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
     id_colaborador = 3295 if id_colaborador is None else id_colaborador
     # Validação dos inputs
     if not id_colaborador or not datas or any(d is None for d in datas) or not isinstance(min_dias, int) or min_dias < 1:
-        return '', '', '', '','', ''
+        return '', '', '', '','', '', ''
     
-    inicio = pd.to_datetime(datas[0])
-    fim = pd.to_datetime(datas[1])
+    
+    # Obtém análise estatística
+    df_os_analise = colab.obtem_estatistica_retrabalho_sql(
+        datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
+        lista_secaos=lista_secaos, lista_os=lista_os
+    )
 
-    # Obtem os dados do colaborador
-    df_os_mecanico = colab.obtem_dados_os_mecanico(id_colaborador)
-    if df_os_mecanico.empty:
-        return (
-            "Nenhuma OS encontrada para esse colaborador.",
-            "Nenhuma OS encontrada para esse colaborador.",
-            'Nenhuma OS encontrada para esse colaborador.',
-            'Nenhuma OS realizada no período selecionado.',
-            'Nenhuma OS realizada no período selecionado.',
-            'Nenhuma OS encontrada para esse colaborador.',
-        )
-
-    # Converte a coluna de datas
-    df_os_mecanico["DATA INICIO SERVICO"] = pd.to_datetime(df_os_mecanico["DATA INICIO SERVICO"], errors="coerce")
-
-    # Filtra as OSs pelo intervalo de datas
-    df_os_mecanico = df_os_mecanico[
-        (df_os_mecanico["DATA INICIO SERVICO"] >= inicio) & (df_os_mecanico["DATA INICIO SERVICO"] <= fim)
-    ]
-
-    if df_os_mecanico.empty:
+    if df_os_analise.empty:
         return (
             "Nenhuma OS realizada no período selecionado.",
             "Nenhuma OS realizada no período selecionado.",
+            'Nenhuma OS realizada no período selecionado.',
             'Nenhuma OS realizada no período selecionado.',
             'Nenhuma OS realizada no período selecionado.',
             'Nenhuma OS realizada no período selecionado.',
@@ -657,14 +679,7 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
         )
 
     # Indicador 1: Total de OSs trabalhadas
-    total_os = f"{df_os_mecanico.shape[0]} OSs trabalhadas"
-
-    # Obtém análise estatística
-    df_os_analise = colab.obtem_estatistica_retrabalho_sql(
-        datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
-        lista_secaos=lista_secaos, lista_os=lista_os
-    )
-
+    total_os = f"{df_os_analise['TOTAL_OS'].iloc[0]} OSs trabalhadas"
     # Indicador 2: Quantidade de serviços únicos realizados
     servicos_diferentes = df_os_analise['QTD_SERVICOS_DIFERENTES'].iloc[0]
     quantidade_servicos = f"{servicos_diferentes} Serviços Realizados"
@@ -688,11 +703,18 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
         datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
         lista_secaos=lista_secaos, lista_os=lista_os
     )
-    
+    # Indicadores Rank
     rank_servico = f"{df_rank_servico['rank_colaborador'].iloc[0]}° posição"
     rank_os_absoluta = f"{df_rank_os['rank_colaborador'].iloc[0]}°  posição"
+    
+    df_nota_media = colab.nota_media_colaborador(
+        datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
+        lista_secaos=lista_secaos, lista_os=lista_os
+    )
+    
+    nota_media = f"{df_nota_media['nota_media_colaborador'].iloc[0]} nota media"
 
-    return total_os, quantidade_servicos, correcao_primeira, retrabalho, rank_servico, rank_os_absoluta
+    return total_os, quantidade_servicos, correcao_primeira, retrabalho, rank_servico, rank_os_absoluta, nota_media
 
 
 
@@ -884,4 +906,34 @@ def tabela_visao_geral_colaborador(id_colaborador, datas, min_dias, lista_secaos
         datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
         lista_secaos=lista_secaos, lista_os=lista_os
     )
+    
+@callback(
+    Output("graph-evolucao-nota-por-mes", "figure"), 
+    [
+        Input("input-lista-colaborador", "value"),
+        Input("input-intervalo-datas-colaborador", "value"),
+        Input("input-min-dias-colaborador", "value"),
+        Input("input-select-secao-colaborador", "value"),
+        Input("input-select-ordens-servico-colaborador", "value"),
+    ],
+    running=[(Output("loading-overlay", "visible"), True, False)],
+)
+def grafico_nota_media_mes(id_colaborador, datas, min_dias, lista_secaos, lista_os):
+    '''plota grafico de evolução de retrabalho por ano'''
+    print(f"Inputs recebidos: {id_colaborador}, {datas}, {min_dias}, {lista_secaos}, {lista_os}")
+    
+    dados_vazios = {"df_os_mecanico": pd.DataFrame().to_dict("records"), "vazio": True}
+    # Validação dos inputs
+    if (id_colaborador is None) or (datas is None) or (min_dias is None):
+        return go.Figure()
+    
+    print(id_colaborador)
+    # Obtém análise estatística
+    df_os_analise = colab.evolucao_nota_media_colaborador(
+        datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
+        lista_secaos=lista_secaos, lista_os=lista_os
+    )
+
+    fig = generate_grafico_evolucao_nota(df_os_analise)
+    return fig
     

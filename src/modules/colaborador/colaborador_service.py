@@ -133,6 +133,7 @@ class ColaboradorService:
         subquery_os_str = self.subquery_os(lista_os)
         query = f"""
         SELECT
+            COUNT(*) as "TOTAL_OS",
             SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END) AS "TOTAL_RETRABALHO",
             SUM(CASE WHEN correcao THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO",
             SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO_PRIMEIRA",
@@ -148,7 +149,7 @@ class ColaboradorService:
             {subquery_os_str}
         """
         
-
+        print(query)
         # Executa query
         df = pd.read_sql(query, self.pgEngine)
          # Calcula o total de correções tardia
@@ -168,7 +169,7 @@ class ColaboradorService:
         subquery_os_str = self.subquery_os(lista_os)
         query = f"""
             WITH oficina_colaborador AS (
-            SELECT DISTINCT "DESCRICAO DA OFICINA"
+            SELECT DISTINCT "DESCRICAO DA SECAO"
             FROM mat_view_retrabalho_{min_dias}_dias
             WHERE 
                 "COLABORADOR QUE EXECUTOU O SERVICO"= '{id_colaborador}'
@@ -219,6 +220,7 @@ class ColaboradorService:
             year_month,
             escopo;
             """
+        print(query)
         # Executa query
         df = pd.read_sql(query, self.pgEngine)
         df["year_month_dt"] = pd.to_datetime(df["year_month"], format="%Y-%m", errors="coerce")
@@ -450,25 +452,27 @@ class ColaboradorService:
         subquery_secoes_str = self.subquery_secoes(lista_secaos)
         subquery_os_str = self.subquery_os(lista_os)
         
-        df_mecanicos = pd.read_sql(
-            F"""
-            SELECT 
+        query = F"""
+            with TABELA_RANK as (SELECT 
             "COLABORADOR QUE EXECUTOU O SERVICO",
-            COUNT("DESCRICAO DO SERVICO") AS quantidade_de_servicos,
-            ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS rank_colaborador
+            COUNT(DISTINCT "DESCRICAO DO SERVICO") AS quantidade_de_servicos_diferentes,
+            ROW_NUMBER() OVER (ORDER BY COUNT(DISTINCT "DESCRICAO DO SERVICO") DESC) AS rank_colaborador
             FROM
                 mat_view_retrabalho_{min_dias}_dias
             WHERE
                 "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
                 {subquery_secoes_str}
                 {subquery_os_str}
-            GROUP BY "COLABORADOR QUE EXECUTOU O SERVICO", "DESCRICAO DO SERVICO" 
-            ORDER BY rank_colaborador;
-            """,
+            GROUP BY "COLABORADOR QUE EXECUTOU O SERVICO")
+            
+            SELECT rank_colaborador FROM TABELA_RANK where  "COLABORADOR QUE EXECUTOU O SERVICO" = {id_colaborador};
+            """
+        
+        df_mecanicos = pd.read_sql(
+            query,
             self.pgEngine
         )  
-        df_mecanicos = df_mecanicos[df_mecanicos["COLABORADOR QUE EXECUTOU O SERVICO"].isin([id_colaborador])]
-        print(df_mecanicos)
+
         return df_mecanicos
     
     def indcador_rank_total_os(self, datas, min_dias, id_colaborador, lista_secaos, lista_os):
@@ -481,9 +485,8 @@ class ColaboradorService:
         subquery_secoes_str = self.subquery_secoes(lista_secaos)
         subquery_os_str = self.subquery_os(lista_os)
         
-        df_mecanicos = pd.read_sql(
-            F"""
-            SELECT 
+        query = F"""
+            with TABELA_RANK as (SELECT 
                 "COLABORADOR QUE EXECUTOU O SERVICO",
                 COUNT(*) AS quantidade_de_OS,
                 ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS rank_colaborador
@@ -493,14 +496,15 @@ class ColaboradorService:
                 "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
                 {subquery_secoes_str}
                 {subquery_os_str}
-            GROUP BY "COLABORADOR QUE EXECUTOU O SERVICO"
-            ORDER BY rank_colaborador;
-            """,
+            GROUP BY "COLABORADOR QUE EXECUTOU O SERVICO")
+            
+            SELECT rank_colaborador FROM TABELA_RANK where  "COLABORADOR QUE EXECUTOU O SERVICO" = {id_colaborador}
+        """
+        df_mecanicos = pd.read_sql(
+            query,
             self.pgEngine
         )
-        df_mecanicos = df_mecanicos[df_mecanicos["COLABORADOR QUE EXECUTOU O SERVICO"].isin([id_colaborador])]
         
-        print(df_mecanicos)
         return df_mecanicos
     
     @staticmethod
@@ -537,3 +541,95 @@ class ColaboradorService:
         )
         
         return df_lista_os
+    
+    def nota_media_colaborador(self, datas, min_dias, id_colaborador, lista_secaos, lista_os):
+        '''Retorna a nota media do colaborador'''
+        
+        data_inicio_str = datas[0]
+        data_fim = pd.to_datetime(datas[1])
+        data_fim = data_fim - pd.DateOffset(days=min_dias + 1)
+        data_fim_str = data_fim.strftime("%Y-%m-%d")
+        
+        subquery_secoes_str = self.subquery_secoes(lista_secaos)
+        subquery_os_str = self.subquery_os(lista_os)
+        
+        
+        query = f"""
+        SELECT
+          	ROUND(AVG("SCORE_SOLUTION_TEXT_QUALITY"), 2) as nota_media_colaborador
+        FROM
+            mat_view_retrabalho_{min_dias}_dias mt
+        LEFT JOIN
+		    os_dados_classificacao odc  on mt."KEY_HASH" = odc."KEY_HASH" 
+
+        WHERE
+            "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}' AND "COLABORADOR QUE EXECUTOU O SERVICO"= '{id_colaborador}'
+            {subquery_secoes_str}
+            {subquery_os_str}
+    
+        """
+        df_mecanico = pd.read_sql(query, self.pgEngine)
+        return df_mecanico
+        
+    def evolucao_nota_media_colaborador(self, datas, min_dias, id_colaborador, lista_secaos, lista_os):
+        
+        '''Retorna evoluçao da nota media do colaborador e da oficina'''
+        
+        data_inicio_str = datas[0]
+        data_fim = pd.to_datetime(datas[1])
+        data_fim = data_fim - pd.DateOffset(days=min_dias + 1)
+        data_fim_str = data_fim.strftime("%Y-%m-%d")
+        
+        subquery_secoes_str = self.subquery_secoes(lista_secaos)
+        subquery_os_str = self.subquery_os(lista_os)
+        
+        query = f"""
+            WITH oficina_colaborador AS (
+            SELECT DISTINCT "DESCRICAO DA OFICINA"
+            FROM mat_view_retrabalho_{min_dias}_dias
+            WHERE 
+                "COLABORADOR QUE EXECUTOU O SERVICO"= '{id_colaborador}'
+                AND "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+        )
+        SELECT
+            'COLABORADOR' AS escopo,
+            to_char(to_timestamp("DATA DE FECHAMENTO DO SERVICO", 'YYYY-MM-DD"T"HH24:MI:SS'), 'YYYY-MM') AS year_month,
+            ROUND(AVG("SCORE_SOLUTION_TEXT_QUALITY"), 2) as nota_media
+        FROM
+            mat_view_retrabalho_10_dias mt1
+        LEFT JOIN
+		    os_dados_classificacao odc  on mt1."KEY_HASH" = odc."KEY_HASH"
+        WHERE
+            "COLABORADOR QUE EXECUTOU O SERVICO"= '{id_colaborador}'
+            AND "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+            AND "DESCRICAO DA OFICINA" IN (SELECT "DESCRICAO DA OFICINA"  FROM mat_view_retrabalho_{min_dias}_dias)
+        GROUP BY
+            year_month
+
+        UNION ALL
+
+        SELECT
+            "DESCRICAO DA OFICINA" AS escopo,
+            to_char(to_timestamp("DATA DE FECHAMENTO DO SERVICO", 'YYYY-MM-DD"T"HH24:MI:SS'), 'YYYY-MM') AS year_month,
+            ROUND(AVG("SCORE_SOLUTION_TEXT_QUALITY"), 2) as nota_media
+        FROM
+            mat_view_retrabalho_10_dias mt2
+        LEFT JOIN
+		    os_dados_classificacao odc  on mt2."KEY_HASH" = odc."KEY_HASH" 
+      
+        WHERE
+            "COLABORADOR QUE EXECUTOU O SERVICO"= '{id_colaborador}' and 
+            "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+            AND "DESCRICAO DA OFICINA" IN (SELECT "DESCRICAO DA OFICINA" FROM mat_view_retrabalho_{min_dias}_dias)
+            {subquery_secoes_str}
+            {subquery_os_str}
+        GROUP BY
+            year_month, "DESCRICAO DA OFICINA"
+
+        ORDER BY
+            year_month,
+            escopo;
+            """
+            
+        df_mecanico = pd.read_sql(query, self.pgEngine)
+        return df_mecanico
