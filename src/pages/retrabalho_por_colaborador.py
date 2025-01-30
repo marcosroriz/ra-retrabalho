@@ -373,7 +373,7 @@ layout = dbc.Container(
                                     mb="xs",
                                 ),
                             ),
-                            dbc.CardFooter("Total de serviços realizados"),
+                            dbc.CardFooter("Total de serviços  diferentes"),
                         ],
                         class_name="card-box-shadow",
                     ),
@@ -536,6 +536,31 @@ layout = dbc.Container(
                     md=4,
                     style={"margin-bottom": "20px"},
                 ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardBody(
+                                dmc.Group(
+                                    [
+                                        dmc.Title(id="indicador-rank-posicao-nota", order=2),
+                                        DashIconify(
+                                            icon="mdi:account-wrench",
+                                            width=48,
+                                            color="black",
+                                        ),
+                                    ],
+                                    justify="center",  # Centralize conteúdo no card
+                                    mt="md",
+                                    mb="xs",
+                                ),
+                            ),
+                            dbc.CardFooter("Posição da nota media"),
+                        ],
+                        class_name="card-box-shadow",
+                    ),
+                    md=4,
+                    style={"margin-bottom": "20px"},
+                ),
             ],
             justify="center",
         ),
@@ -642,6 +667,7 @@ def corrige_input_ordem_servico(lista_os, lista_secaos):
         Output("indicador-rank-servico", "children"),
         Output("indicador-rank-os", "children"),
         Output("indicador-nota-colaborador", "children"),
+        Output("indicador-rank-posicao-nota", "children"),
         
     ],
     [
@@ -658,7 +684,7 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
     id_colaborador = 3295 if id_colaborador is None else id_colaborador
     # Validação dos inputs
     if not id_colaborador or not datas or any(d is None for d in datas) or not isinstance(min_dias, int) or min_dias < 1:
-        return '', '', '', '','', '', ''
+        return '', '', '', '','', '', '', ''
     
     
     # Obtém análise estatística
@@ -676,13 +702,14 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
             'Nenhuma OS realizada no período selecionado.',
             'Nenhuma OS realizada no período selecionado.',
             'Nenhuma OS realizada no período selecionado.',
+            'Nenhuma OS realizada no período selecionado.',
         )
 
     # Indicador 1: Total de OSs trabalhadas
     total_os = f"{df_os_analise['TOTAL_OS'].iloc[0]} OSs trabalhadas"
     # Indicador 2: Quantidade de serviços únicos realizados
     servicos_diferentes = df_os_analise['QTD_SERVICOS_DIFERENTES'].iloc[0]
-    quantidade_servicos = f"{servicos_diferentes} Serviços Realizados"
+    quantidade_servicos = f"{servicos_diferentes} serviços diferentes"
 
     # Indicadores de correção de primeira e retrabalho
     if not df_os_analise.empty and all(
@@ -713,8 +740,15 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
     )
     
     nota_media = f"{df_nota_media['nota_media_colaborador'].iloc[0]} nota media"
+    
+    df_nota_posicao = colab.posicao_rank_nota_media(
+        datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
+        lista_secaos=lista_secaos, lista_os=lista_os
+    )
 
-    return total_os, quantidade_servicos, correcao_primeira, retrabalho, rank_servico, rank_os_absoluta, nota_media
+    rank_nota_posicao = f"{df_nota_posicao['rank_colaborador'].iloc[0]}° posição da nota media"
+    
+    return total_os, quantidade_servicos, correcao_primeira, retrabalho, rank_servico, rank_os_absoluta, nota_media, rank_nota_posicao
 
 
 
@@ -849,7 +883,6 @@ def grafico_retrabalho_mes(id_colaborador, datas, min_dias, lista_secaos, lista_
     if (id_colaborador is None) or (datas is None) or (min_dias is None):
         return go.Figure()
     
-    print(id_colaborador)
     # Obtém análise estatística
     df_os_analise = colab.obtem_estatistica_retrabalho_grafico(
         datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
@@ -927,7 +960,6 @@ def grafico_nota_media_mes(id_colaborador, datas, min_dias, lista_secaos, lista_
     if (id_colaborador is None) or (datas is None) or (min_dias is None):
         return go.Figure()
     
-    print(id_colaborador)
     # Obtém análise estatística
     df_os_analise = colab.evolucao_nota_media_colaborador(
         datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 

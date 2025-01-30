@@ -133,7 +133,7 @@ class ColaboradorService:
         subquery_os_str = self.subquery_os(lista_os)
         query = f"""
         SELECT
-            COUNT(*) as "TOTAL_OS",
+            COUNT("DESCRICAO DO SERVICO") AS "TOTAL_OS",
             SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END) AS "TOTAL_RETRABALHO",
             SUM(CASE WHEN correcao THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO",
             SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO_PRIMEIRA",
@@ -149,7 +149,6 @@ class ColaboradorService:
             {subquery_os_str}
         """
         
-        print(query)
         # Executa query
         df = pd.read_sql(query, self.pgEngine)
          # Calcula o total de correções tardia
@@ -220,7 +219,6 @@ class ColaboradorService:
             year_month,
             escopo;
             """
-        print(query)
         # Executa query
         df = pd.read_sql(query, self.pgEngine)
         df["year_month_dt"] = pd.to_datetime(df["year_month"], format="%Y-%m", errors="coerce")
@@ -314,7 +312,7 @@ class ColaboradorService:
             main."DESCRICAO DA OFICINA",
             main."DESCRICAO DA SECAO",
             main."DESCRICAO DO SERVICO",
-            COUNT(*) AS "TOTAL_OS",
+            COUNT(main."DESCRICAO DO SERVICO") AS "TOTAL_OS",
             SUM(CASE WHEN main.retrabalho THEN 1 ELSE 0 END) AS "TOTAL_RETRABALHO",
             SUM(CASE WHEN main.correcao THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO",
             SUM(CASE WHEN main.correcao_primeira THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO_PRIMEIRA",
@@ -343,7 +341,6 @@ class ColaboradorService:
         ORDER BY
             "PERC_RETRABALHO" DESC;
         """
-        
         # Executa a query
         df = pd.read_sql(query, self.pgEngine)
 
@@ -568,6 +565,7 @@ class ColaboradorService:
             {subquery_os_str}
     
         """
+        print(query)
         df_mecanico = pd.read_sql(query, self.pgEngine)
         return df_mecanico
         
@@ -631,5 +629,46 @@ class ColaboradorService:
             escopo;
             """
             
+        df_mecanico = pd.read_sql(query, self.pgEngine)
+        return df_mecanico
+    
+    def posicao_rank_nota_media(self, datas, min_dias, id_colaborador, lista_secaos, lista_os):
+        '''Retorna o rank do colaborador'''
+        
+        data_inicio_str = datas[0]
+        data_fim = pd.to_datetime(datas[1])
+        data_fim = data_fim - pd.DateOffset(days=min_dias + 1)
+        data_fim_str = data_fim.strftime("%Y-%m-%d")
+        
+        subquery_secoes_str = self.subquery_secoes(lista_secaos)
+        subquery_os_str = self.subquery_os(lista_os) 
+        
+        query = f'''
+        with TABELA_RANK as (
+        SELECT
+            "COLABORADOR QUE EXECUTOU O SERVICO",
+            ROUND(AVG("SCORE_SOLUTION_TEXT_QUALITY"), 2) AS nota_media_colaborador,
+            ROW_NUMBER() OVER (
+                ORDER BY 
+                    ROUND(AVG("SCORE_SOLUTION_TEXT_QUALITY"), 2) DESC NULLS LAST
+            ) AS rank_colaborador
+        FROM
+            mat_view_retrabalho_{min_dias}_dias mt
+        LEFT JOIN
+            os_dados_classificacao odc ON mt."KEY_HASH" = odc."KEY_HASH"
+        WHERE
+            "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}' 
+            {subquery_secoes_str}
+            {subquery_os_str}
+        GROUP BY 
+            "COLABORADOR QUE EXECUTOU O SERVICO"
+        )
+            
+        select
+            rank_colaborador 
+        from TABELA_RANK
+        where  "COLABORADOR QUE EXECUTOU O SERVICO"= '{id_colaborador}'
+        '''
+        
         df_mecanico = pd.read_sql(query, self.pgEngine)
         return df_mecanico
