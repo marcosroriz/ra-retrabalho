@@ -624,6 +624,7 @@ layout = dbc.Container(
 @callback(
     Output("input-select-secao-colaborador", "value"),
     Input("input-select-secao-colaborador", "value"),
+    running=[(Output("loading-overlay", "visible"), True, False)]
 )
 def corrige_input_secao(lista_secaos):
     return colab.corrige_input(lista_secaos)
@@ -637,6 +638,7 @@ def corrige_input_secao(lista_secaos):
         Input("input-select-ordens-servico-colaborador", "value"),
         Input("input-select-secao-colaborador", "value"),
     ],
+    running=[(Output("loading-overlay", "visible"), True, False)]
 )
 def corrige_input_ordem_servico(lista_os, lista_secaos):
     # Vamos pegar as OS possíveis para as seções selecionadas
@@ -683,6 +685,8 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
     
     id_colaborador = 3295 if id_colaborador is None else id_colaborador
     # Validação dos inputs
+    if datas is None or not datas or None in datas or min_dias is None:
+        return False
     if not id_colaborador or not datas or any(d is None for d in datas) or not isinstance(min_dias, int) or min_dias < 1:
         return '', '', '', '','', '', '', ''
     
@@ -739,7 +743,7 @@ def calcular_indicadores(id_colaborador, datas, min_dias, lista_secaos, lista_os
         lista_secaos=lista_secaos, lista_os=lista_os
     )
     
-    nota_media = f"{df_nota_media['nota_media_colaborador'].iloc[0]} nota media"
+    nota_media = f"{df_nota_media['nota_media_colaborador'].iloc[0] if not df_nota_media['nota_media_colaborador'].iloc[0]  is None else 0} nota media"
     
     df_nota_posicao = colab.posicao_rank_nota_media(
         datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
@@ -777,7 +781,7 @@ def computa_retrabalho_mecanico(id_colaborador, datas, min_dias):
     return {"df_os_mecanico": df_os_mecanico.to_dict("records"), "vazio": False}
 
 
-@callback(Output("graph-barra-atuacao-geral", "figure"), Input("store-dados-colaborador-retrabalho", "data"))
+@callback(Output("graph-barra-atuacao-geral", "figure"), Input("store-dados-colaborador-retrabalho", "data"), running=[(Output("loading-overlay", "visible"), True, False)])
 def computa_atuacao_mecanico_tipo_os(data):
     if data["vazio"]:
         return go.Figure()
@@ -831,6 +835,7 @@ def computa_atuacao_mecanico_tipo_os(data):
         Input("input-select-secao-colaborador", "value"),
         Input("input-select-ordens-servico-colaborador", "value"),
     ],
+    running=[(Output("loading-overlay", "visible"), True, False)]
 )
 def computa_atuacao_mecanico_tipo_os(id_colaborador, datas, min_dias, lista_secaos, lista_os):
     if id_colaborador is None:

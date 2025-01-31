@@ -148,7 +148,7 @@ class ColaboradorService:
             {subquery_secoes_str}
             {subquery_os_str}
         """
-        
+        print(query)
         # Executa query
         df = pd.read_sql(query, self.pgEngine)
          # Calcula o total de correções tardia
@@ -615,10 +615,9 @@ class ColaboradorService:
         LEFT JOIN
 		    os_dados_classificacao odc  on mt2."KEY_HASH" = odc."KEY_HASH" 
       
-        WHERE
-            "COLABORADOR QUE EXECUTOU O SERVICO"= '{id_colaborador}' and 
+        WHERE 
             "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
-            AND "DESCRICAO DA OFICINA" IN (SELECT "DESCRICAO DA OFICINA" FROM mat_view_retrabalho_{min_dias}_dias)
+            AND "DESCRICAO DA OFICINA" IN (SELECT "DESCRICAO DA OFICINA" FROM oficina_colaborador)
             {subquery_secoes_str}
             {subquery_os_str}
         GROUP BY
@@ -628,6 +627,8 @@ class ColaboradorService:
             year_month,
             escopo;
             """
+
+        print(query)
             
         df_mecanico = pd.read_sql(query, self.pgEngine)
         return df_mecanico
