@@ -25,7 +25,7 @@ def transform_year(year: str):
 def generate_grafico_evolucao(dados):
     '''Plota gráfico de evolução das médias de retrabalho e correção de primeira por mês'''
 
-# Funde (melt) colunas de retrabalho e correção
+    # Funde (melt) colunas de retrabalho e correção
     df_combinado = dados.melt(
         id_vars=["year_month_dt", "escopo"],
         value_vars=["PERC_RETRABALHO", "PERC_CORRECAO_PRIMEIRA"],
@@ -170,3 +170,19 @@ def grafico_pizza_colaborador(data):
 
     # Retorna o gráfico
     return fig
+
+# Função para validar o input
+def input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os):
+    if datas is None or not datas or None in datas or min_dias is None:
+        return False
+
+    if lista_oficinas is None or not lista_oficinas or None in lista_oficinas:
+        return False
+
+    if lista_secaos is None or not lista_secaos or None in lista_secaos:
+        return False
+
+    if lista_os is None or not lista_os or None in lista_os:
+        return False
+
+    return True

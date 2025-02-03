@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import traceback
 import re
 
@@ -148,7 +149,6 @@ class ColaboradorService:
             {subquery_secoes_str}
             {subquery_os_str}
         """
-        print(query)
         # Executa query
         df = pd.read_sql(query, self.pgEngine)
          # Calcula o total de correções tardia
@@ -307,6 +307,24 @@ class ColaboradorService:
                 "DESCRICAO DA OFICINA",
                 "DESCRICAO DA SECAO",
                 servico
+        ),
+        os_nota_media AS (
+            -- Calculando a nota média por OS (sem filtro de colaborador)
+            SELECT
+                "DESCRICAO DA OFICINA",
+                "DESCRICAO DA SECAO",
+                "DESCRICAO DO SERVICO",
+                ROUND(AVG(odc."SCORE_SOLUTION_TEXT_QUALITY"), 2) AS nota_media_os
+            FROM mat_view_retrabalho_{min_dias}_dias mt
+            LEFT JOIN os_dados_classificacao odc
+            ON mt."KEY_HASH" = odc."KEY_HASH"
+            WHERE
+                mt."DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+                {inner_subquery_os_str}
+            GROUP BY
+                "DESCRICAO DA OFICINA",
+                "DESCRICAO DA SECAO",
+                "DESCRICAO DO SERVICO"
         )
         SELECT
             main."DESCRICAO DA OFICINA",
@@ -320,6 +338,8 @@ class ColaboradorService:
             100 * ROUND(SUM(CASE WHEN main.correcao THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO",
             100 * ROUND(SUM(CASE WHEN main.correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA",
             COALESCE(op.num_problema, 0) AS "TOTAL_PROBLEMA",
+            ROUND(AVG("SCORE_SOLUTION_TEXT_QUALITY"), 2) as nota_media_colaborador,
+            osn.nota_media_os AS "nota_media_os",
             100 * ROUND(COUNT(*)::NUMERIC / SUM(COUNT(*)) OVER (), 4) AS "PERC_TOTAL_OS"
         FROM
             mat_view_retrabalho_{min_dias}_dias main
@@ -329,6 +349,15 @@ class ColaboradorService:
             main."DESCRICAO DA OFICINA" = op."DESCRICAO DA OFICINA"
             AND main."DESCRICAO DA SECAO" = op."DESCRICAO DA SECAO"
             AND main."DESCRICAO DO SERVICO" = op.servico
+        LEFT JOIN 
+        	os_dados_classificacao odc  
+        ON
+            main."KEY_HASH" = odc."KEY_HASH"
+            
+        LEFT JOIN os_nota_media osn
+            ON main."DESCRICAO DA OFICINA" = osn."DESCRICAO DA OFICINA"
+            AND main."DESCRICAO DA SECAO" = osn."DESCRICAO DA SECAO"
+            AND main."DESCRICAO DO SERVICO" = osn."DESCRICAO DO SERVICO"
         WHERE
             main."DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}' AND main."COLABORADOR QUE EXECUTOU O SERVICO" = {id_colaborador}
             {inner_subquery_secoes_str}
@@ -337,15 +366,19 @@ class ColaboradorService:
             main."DESCRICAO DA OFICINA",
             main."DESCRICAO DA SECAO",
             main."DESCRICAO DO SERVICO",
-            op.num_problema
+            op.num_problema,
+            osn.nota_media_os
         ORDER BY
             "PERC_RETRABALHO" DESC;
         """
+        print(query)
+        
         # Executa a query
         df = pd.read_sql(query, self.pgEngine)
 
-        df["REL_OS_PROBLEMA"] = round(df["TOTAL_OS"] / df["TOTAL_PROBLEMA"], 2)
-
+        df['nota_media_colaborador'] = df['nota_media_colaborador'].replace(np.nan, 0)
+        df['nota_media_os'] = df['nota_media_os'].replace(np.nan, 0)
+        
         return df.to_dict("records")
     
     
@@ -435,7 +468,6 @@ class ColaboradorService:
         
         # Executa a query
         df = pd.read_sql(query, self.pgEngine)
-        print(df.columns)
 
         return df
     
@@ -565,7 +597,6 @@ class ColaboradorService:
             {subquery_os_str}
     
         """
-        print(query)
         df_mecanico = pd.read_sql(query, self.pgEngine)
         return df_mecanico
         
@@ -628,7 +659,6 @@ class ColaboradorService:
             escopo;
             """
 
-        print(query)
             
         df_mecanico = pd.read_sql(query, self.pgEngine)
         return df_mecanico

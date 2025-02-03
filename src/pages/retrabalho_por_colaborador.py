@@ -110,6 +110,26 @@ tbl_top_os_geral_retrabalho = [
         "type": ["numericColumn"],
         "minWidth": 200
     },
+    {
+        "field": "nota_media_colaborador",
+        "headerName": "NOTA MEDIA DO COLABORADOR",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "filter": "agNumberColumnFilter",
+        "maxWidth": 150,
+        "type": ["numericColumn"],
+        "minWidth": 200
+    },
+    {
+        "field": "nota_media_os",
+        "headerName": "NOTA MEDIA DA OS",
+        "wrapHeaderText": True,
+        "autoHeaderHeight": True,
+        "filter": "agNumberColumnFilter",
+        "maxWidth": 150,
+        "type": ["numericColumn"],
+        "minWidth": 200
+    },
 
 ]
 
@@ -197,8 +217,8 @@ layout = dbc.Container(
                                                         allowSingleDateInRange=True,
                                                         type="range",
                                                         minDate=date(2024, 1, 1),
-                                                        maxDate=date.today(),
-                                                        value=[date(2024, 1, 1), date.today()],
+                                                        maxDate=datetime.now().date(),
+                                                        value=[date(2024, 1, 1), datetime.now().date()],
                                                     ),
                                                 ],
                                                 className="dash-bootstrap",
@@ -847,7 +867,8 @@ def computa_atuacao_mecanico_tipo_os(id_colaborador, datas, min_dias, lista_seca
         lista_secaos=lista_secaos, lista_os=lista_os
     ).sort_values('TOTAL_OS',ascending=False)
 
-  
+    if df_os_mecanico.empty:
+        return go.Figure()
     # Top 10 serviços
     df_agg_servico_top10 = df_os_mecanico.head(10)
 
@@ -893,6 +914,8 @@ def grafico_retrabalho_mes(id_colaborador, datas, min_dias, lista_secaos, lista_
         datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
         lista_secaos=lista_secaos, lista_os=lista_os
     )
+    if df_os_analise.empty:
+        return go.Figure()
 
     fig = generate_grafico_evolucao(df_os_analise)
     return fig
@@ -921,6 +944,9 @@ def grafico_retrabalho_resumo(id_colaborador, datas, min_dias, lista_secaos, lis
         lista_secaos=lista_secaos, lista_os=lista_os
     )
 
+    if df_os_analise.empty:
+        return go.Figure()
+    
     fig = grafico_pizza_colaborador(df_os_analise)
     return fig
 
@@ -960,7 +986,6 @@ def grafico_nota_media_mes(id_colaborador, datas, min_dias, lista_secaos, lista_
     '''plota grafico de evolução de retrabalho por ano'''
     print(f"Inputs recebidos: {id_colaborador}, {datas}, {min_dias}, {lista_secaos}, {lista_os}")
     
-    dados_vazios = {"df_os_mecanico": pd.DataFrame().to_dict("records"), "vazio": True}
     # Validação dos inputs
     if (id_colaborador is None) or (datas is None) or (min_dias is None):
         return go.Figure()
@@ -970,6 +995,8 @@ def grafico_nota_media_mes(id_colaborador, datas, min_dias, lista_secaos, lista_
         datas=datas, id_colaborador=id_colaborador, min_dias=min_dias, 
         lista_secaos=lista_secaos, lista_os=lista_os
     )
+    if df_os_analise.empty:
+        return go.Figure()
 
     fig = generate_grafico_evolucao_nota(df_os_analise)
     return fig
