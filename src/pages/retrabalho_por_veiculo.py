@@ -558,7 +558,7 @@ layout = dbc.Container(
                                             mb="xs",
                                         ),
                                     ),
-                                    dbc.CardFooter("Posição veículo relaçao % retrabalho"),
+                                    dbc.CardFooter("Ranking do veículo em relaçao % retrabalho"),
                                 ],
                                 class_name="card-box-shadow",
                             ),
@@ -585,7 +585,7 @@ layout = dbc.Container(
                                             mb="xs",
                                         ),
                                     ),
-                                    dbc.CardFooter("Posição veiculo relaçao % correção de primeira"),
+                                    dbc.CardFooter("Ranking do veiculo em relaçao % correção de primeira"),
                                 ],
                                 class_name="card-box-shadow",
                             ),
@@ -641,7 +641,7 @@ layout = dbc.Container(
                                             mb="xs",
                                         ),
                                     ),
-                                    dbc.CardFooter("Peças total"),
+                                    dbc.CardFooter("Valor total de peças"),
                                 ],
                                 class_name="card-box-shadow",
                             ),
@@ -668,7 +668,7 @@ layout = dbc.Container(
                                             mb="xs",
                                         ),
                                     ),
-                                    dbc.CardFooter("Peças/mês"),
+                                    dbc.CardFooter("Valor total de peças/mês"),
                                 ],
                                 class_name="card-box-shadow",
                             ),
@@ -692,7 +692,7 @@ layout = dbc.Container(
                                             mb="xs",
                                         ),
                                     ),
-                                    dbc.CardFooter("Ranking de peças"),
+                                    dbc.CardFooter("Ranking do valor das peças dentro do período"),
                                 ],
                                 class_name="card-box-shadow",
                             ),
@@ -824,7 +824,7 @@ layout = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(DashIconify(icon="fluent:arrow-trending-wrench-20-filled", width=45), width="auto"),
-                dbc.Col(html.H4("Peças trocadas por mês", className="align-self-center"), width=True),
+                dbc.Col(html.H4("Valor das peças trocadas por mês", className="align-self-center"), width=True),
             ],
             align="center",
         ),
@@ -945,7 +945,6 @@ def corrige_input(lista):
     # Por fim, se não caiu em nenhum caso, retorna o valor original
     return lista
 
-
 def corrige_input_ordem_servico(lista_os, lista_secaos):
     # Vamos pegar as OS possíveis para as seções selecionadas
     df_lista_os_secao = df_lista_os
@@ -977,14 +976,12 @@ def subquery_oficinas(lista_oficinas, prefix=""):
 
     return query
 
-
 def subquery_secoes(lista_secaos, prefix=""):
     query = ""
     if "TODAS" not in lista_secaos:
         query = f"""AND {prefix}"DESCRICAO DA SECAO" IN ({', '.join([f"'{x}'" for x in lista_secaos])})"""
 
     return query
-
 
 def subquery_os(lista_os, prefix=""):
     query = ""
@@ -1006,9 +1003,6 @@ def subquery_equipamentos(lista_veiculos, prefix=""):
         query = f"""AND {prefix}"EQUIPAMENTO" IN ({', '.join([f"'{x}'" for x in lista_veiculos])})"""
     return query
 
-
-
-
 def subquery_modelos_veiculos(lista_modelos, prefix=""):
     query = ""
     if "TODAS" not in lista_modelos:
@@ -1017,7 +1011,7 @@ def subquery_modelos_veiculos(lista_modelos, prefix=""):
     return query
 
 
-# Callback para o grafico de síntese do retrabalho
+# GRÁFICO DE PIZZA GERAL
 @callback(
     [Output("graph-pizza-sintese-retrabalho-geral_veiculo", "figure"),
     Output("indicador-porcentagem-retrabalho-veiculo", "children"),
@@ -1121,17 +1115,10 @@ def plota_grafico_pizza_sintese_geral(datas, min_dias, lista_oficinas, lista_sec
     )
 
     # Retorna o gráfico
-    return fig, total_correcao_primeira, total_retrabalho
+    return fig, total_retrabalho, total_correcao_primeira,
 
 
-
-
-
-
-
-
-
-########### FUNÇÃO AUXILIAR
+########### FUNÇÕES AUXILIAR
 def media_geral_retrabalho_modelos(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos, lista_modelos):
     # Chama a função input_valido com todos os parâmetros
     if not input_valido2(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos, lista_modelos):
@@ -1272,8 +1259,9 @@ def media_geral_retrabalho_geral(datas, min_dias, lista_oficinas, lista_secaos, 
     #print(df_media.head())
     
     return df_media
+########### FUNÇÕES AUXILIAR
 
-
+# GRÁFICO DE RETRABALHOS POR VEÍCULOS
 @callback(
     Output("graph-evolucao-retrabalho-por-garagem-por-mes-veiculos", "figure"),
     [
@@ -1285,7 +1273,7 @@ def media_geral_retrabalho_geral(datas, min_dias, lista_oficinas, lista_secaos, 
         Input("input-select-veiculos", "value"),
     ],
 )
-def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
+def plota_grafico_evolucao_retrabalho_por_veiculo_por_mes(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
     # Valida input
     if not input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
         return go.Figure()
@@ -1356,11 +1344,7 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
 
     media_geral = media_geral_retrabalho_geral(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos)
 
-    #print(media_geral.head())
-
     df_combinado = pd.concat([df_combinado, media_geral_modelos, media_geral], ignore_index=True)
-
-    #df_combinado = df_combinado[df_combinado["CODIGO DO VEICULO"] == "Geral"]
 
     #print(df_combinado.head())
 
@@ -1425,7 +1409,7 @@ def plota_grafico_evolucao_retrabalho_por_oficina_por_mes(datas, min_dias, lista
 
     return fig
 
-
+# GRÁFICO DO RETRABALHO POR SECAO POR UM ÚNICO VEICULO
 @callback(
     Output("graph-evolucao-retrabalho-por-secao-por-mes-veiculos", "figure"),
     [
@@ -1559,18 +1543,18 @@ def plota_grafico_evolucao_retrabalho_por_secao_por_mes(datas, min_dias, lista_o
     # Exibe o gráfico
     return fig
 
-
+######### RASCUNHO
 @callback(
     [
         #Output("indicador-porcentagem-retrabalho-veiculo", "children"),
         #Output("indicador-porcentagem-correcao-primeira", "children"),
         Output("indicador-relacao-os-problema", "children"),
-        Output("indicador-posicao-relaçao-retrabalho", "children"),
-        Output("indicador-posição-veiculo-correção-primeira", "children"),
+        #Output("indicador-posicao-relaçao-retrabalho", "children"),
+        #Output("indicador-posição-veiculo-correção-primeira", "children"),
         Output("indicador-posição-veiculo-relaçao-osproblema", "children"),
         #Output("indicador-pecas-totais", "children"),
         #Output("indicador-pecas-mes", "children"),
-        Output("indicador-ranking-pecas", "children"),
+        #Output("indicador-ranking-pecas", "children"),
         #Output("indicador-oss-diferentes", "children"),
         #Output("indicador-problemas-diferentes", "children"),
         #Output("indicador-mecanicos-diferentes", "children"),
@@ -1600,8 +1584,9 @@ def atualiza_indicadores(data):
         f"{problemas_diferentess} diferentes",
         f"{mecanicos_diferentes} diferentes",
     ]
+######### RASCUNHO
 
-
+# GRAFICO DA QUANTIDADE DE OSs, INDICADORES DE : PROBLEMAS DIFERENTES, MECANICOS DIFERENTES, OS DIFERENTES
 @callback(
     [Output('graph-evolucao-os-mes-veiculo', 'figure'),
      Output("indicador-problemas-diferentes", "children"),
@@ -1657,28 +1642,6 @@ def plota_grafico_evolucao_quantidade_os_por_mes(datas, min_dias, lista_oficinas
             DATE_TRUNC('month', "DATA DE FECHAMENTO DO SERVICO"::timestamp),
             "DESCRICAO DO SERVICO",
             "DESCRICAO DO MODELO"
-        ORDER BY
-            "CODIGO DO VEICULO",
-            "MÊS";
-    """
-
-
-    query1 = f"""
-        SELECT 
-            "CODIGO DO VEICULO",
-            DATE_TRUNC('month', "DATA DE FECHAMENTO DO SERVICO") AS "MÊS",
-            COUNT("NUMERO DA OS") AS "QUANTIDADE_DE_OS"
-        FROM
-            os_dados
-        WHERE
-            "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
-            {subquery_oficinas_str}
-            {subquery_secoes_str}
-            {subquery_os_str}
-            {subquery_veiculos_str}
-        GROUP BY
-            "CODIGO DO VEICULO",
-            DATE_TRUNC('month', "DATA DE FECHAMENTO DO SERVICO")
         ORDER BY
             "CODIGO DO VEICULO",
             "MÊS";
@@ -1885,7 +1848,7 @@ def plota_grafico_evolucao_quantidade_os_por_mes(datas, min_dias, lista_oficinas
 
     return fig, os_diferentes, mecanicos_diferentes, os_totais_veiculo
 
-
+# GRAFICO DA TABELA DE PEÇAS
 @callback(
     Output("graph-pecas-trocadas-por-mes", "figure"),
     [
@@ -1974,7 +1937,7 @@ def plota_grafico_pecas_trocadas_por_mes(datas, equipamentos):
                     x=df_equip["year_month_dt"],
                     y=df_equip["total_pecas"],
                     mode="lines+markers",
-                    name=f"Peças do Veículo {equip}",
+                    name=f"Valores do Veículo {equip}",
                     line=dict(width=2)
                 )
             )
@@ -1995,11 +1958,12 @@ def plota_grafico_pecas_trocadas_por_mes(datas, equipamentos):
         print(f"Erro ao executar as consultas: {e}")
         return go.Figure().update_layout(title_text=f"Erro ao carregar os dados: {e}")
     
-
+# TABELA DE PEÇAS, INDICADORES DE: VALORES DE PECAS, VALOR DE PECAS/MES, RANKING DO VALOR DE PECAS
 @callback(
    [Output("tabela-pecas-substituidas", "rowData"),
     Output("indicador-pecas-totais", "children"),
     Output("indicador-pecas-mes", "children"),
+    Output("indicador-ranking-pecas", "children"),
     ],
     #Input("graph-pecas-trocadas-por-mes", "clickData"),
     [
@@ -2007,11 +1971,12 @@ def plota_grafico_pecas_trocadas_por_mes(datas, equipamentos):
         Input("input-select-dias-geral-retrabalho", "value"),
         Input("input-select-veiculos", "value"),
     ],
+    
 )
 def atualiza_tabela_pecas(datas, min_dias, lista_veiculos):
     # Valida input
     if not input_valido3(datas, min_dias, lista_veiculos):
-        return [], 0, 0
+        return [], 0, 0, 0
 
     # Datas
     data_inicio_str = datas[0]
@@ -2049,7 +2014,29 @@ def atualiza_tabela_pecas(datas, min_dias, lista_veiculos):
                      'Chassis', 'Carrocerias', 'Arrefecimento', 'Ar Condicionado')
             {subquery_veiculos_str}
     """
-    
+
+
+    query_ranking_veiculo = f"""
+    WITH ranking_veiculos AS (
+        SELECT 
+            ROW_NUMBER() OVER (ORDER BY SUM("VALOR") ASC) AS ranking,
+            "EQUIPAMENTO",  -- Veículo
+            SUM("VALOR") AS total_pecas
+        FROM pecas_gerais 
+        WHERE 
+            TO_DATE("DATA", 'DD/MM/YY') 
+            BETWEEN TO_DATE('{data_inicio_str}', 'DD/MM/YYYY') 
+                    AND TO_DATE('{data_fim_str}', 'DD/MM/YYYY')
+            AND "GRUPO" IN ('PEÇAS E EQUIPAMENTOS', 'Transmissão', 'Suspensão', 'Motores', 
+                            'Sistema de Alimentacao Veiculos', 'Freios', 'Elétricos', 'Direção',
+                            'Chassis', 'Carrocerias', 'Arrefecimento', 'Ar Condicionado')
+        GROUP BY "EQUIPAMENTO"
+        )
+        SELECT * 
+        FROM ranking_veiculos
+            WHERE "EQUIPAMENTO" = '{lista_veiculos[0]}'
+        ORDER BY ranking;
+"""
     try:
         df_detalhes = pd.read_sql(query_detalhes, pgEngine)
 
@@ -2059,6 +2046,15 @@ def atualiza_tabela_pecas(datas, min_dias, lista_veiculos):
         num_meses = df_detalhes['DT'].dt.to_period('M').nunique()
 
         numero_pecas_veiculos_total = int(df_detalhes['QUANTIDADE'].sum())
+        valor_total_veiculos = int(df_detalhes['VALOR'].sum())
+
+        valor_total_veiculos_str = "R${:,.2f}".format(valor_total_veiculos)
+        if len(lista_veiculos) <= 1:
+            df_rk = pd.read_sql(query_ranking_veiculo, pgEngine)
+            rk_n = df_rk.iloc[0]["ranking"]
+            rk = f'{rk_n}°'
+        else:
+            rk = f'0°'
 
         #print(query_detalhes)
         print(numero_pecas_veiculos_total)
@@ -2067,13 +2063,16 @@ def atualiza_tabela_pecas(datas, min_dias, lista_veiculos):
         
         pecas_mes = round((numero_pecas_veiculos_total/num_meses), 2)
 
+        valor_mes = round((valor_total_veiculos/num_meses), 2)
+        valor_mes_str = "R${:,.2f}".format(valor_mes)
+
         #print(df_detalhes.head())
-        return df_detalhes.to_dict("records"), numero_pecas_veiculos_total, pecas_mes
+        return df_detalhes.to_dict("records"), valor_total_veiculos_str, valor_mes_str, rk
     except Exception as e:
         print(f"Erro ao executar a consulta da tabela: {e}")
-        return [], 0, 0
+        return [], 0, 0, 0
 
-
+# TABELA DE DESCRIÇÃO DE SERVIÇOS
 @callback(
     Output("tabela-descricao-de-servico", "rowData"),
     [
@@ -2193,3 +2192,97 @@ def atualiza_tabela_top_os_geral_retrabalho(datas, min_dias, lista_oficinas, lis
     df["REL_OS_PROBLEMA"] = round(df["TOTAL_OS"] / df["TOTAL_PROBLEMA"], 2)
 
     return df.to_dict("records")
+
+# RANKING DOS RETRABALHOS DOS VEÍCULOS. INDICADORES DE: POSIÇÃO DE RELAÇÃO RETRABALHO, CORREÇÃO DE PRIMEIRA
+@callback(
+    [Output("indicador-posicao-relaçao-retrabalho", "children"),
+     Output("indicador-posição-veiculo-correção-primeira","children") ],
+    [
+        Input("input-intervalo-datas-geral", "value"),
+        Input("input-select-dias-geral-retrabalho", "value"),
+        Input("input-select-oficina-visao-geral", "value"),
+        Input("input-select-secao-visao-geral", "value"),
+        Input("input-select-ordens-servico-visao-geral", "value"),
+        Input("input-select-veiculos", "value"),
+    ],
+)
+def ranking_retrabalho_veiculos(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
+    # Valida input
+    if not input_valido(datas, min_dias, lista_oficinas, lista_secaos, lista_os, lista_veiculos):
+        return "", ""
+
+    # Datas
+    data_inicio_str = datas[0]
+
+    # Remove min_dias antes para evitar que a última OS não seja retrabalho
+    data_fim = pd.to_datetime(datas[1])
+    data_fim = data_fim - pd.DateOffset(days=min_dias + 1)
+    data_fim_str = data_fim.strftime("%Y-%m-%d")
+
+    # Subqueries
+    subquery_oficinas_str = subquery_oficinas(lista_oficinas)
+    subquery_secoes_str = subquery_secoes(lista_secaos)
+    subquery_os_str = subquery_os(lista_os)
+    subquery_veiculos_str = subquery_veiculos(lista_veiculos)
+
+    query_ranking_retrabalho_correcao = f"""
+            SELECT
+                "CODIGO DO VEICULO",
+                "DESCRICAO DO MODELO",
+                "TOTAL_RETRABALHO",
+                "TOTAL_CORRECAO",
+                "TOTAL_CORRECAO_PRIMEIRA",
+                "PERC_RETRABALHO",
+                "PERC_CORRECAO",
+                "PERC_CORRECAO_PRIMEIRA",
+                ranking_retrabalho,
+                ranking_correcao,
+                ranking_correcao_primeira
+            FROM (
+                SELECT
+                    "CODIGO DO VEICULO",
+                    "DESCRICAO DO MODELO",
+                    SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END) AS "TOTAL_RETRABALHO",
+                    SUM(CASE WHEN correcao THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO",
+                    SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END) AS "TOTAL_CORRECAO_PRIMEIRA",
+                    100 * ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_RETRABALHO",
+                    100 * ROUND(SUM(CASE WHEN correcao THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO",
+                    100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) AS "PERC_CORRECAO_PRIMEIRA",
+                    DENSE_RANK() OVER (ORDER BY 100 * ROUND(SUM(CASE WHEN retrabalho THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) ASC) AS ranking_retrabalho,
+                    DENSE_RANK() OVER (ORDER BY 100 * ROUND(SUM(CASE WHEN correcao THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) ASC) AS ranking_correcao,
+                    DENSE_RANK() OVER (ORDER BY 100 * ROUND(SUM(CASE WHEN correcao_primeira THEN 1 ELSE 0 END)::NUMERIC / COUNT(*)::NUMERIC, 4) desc)  ranking_correcao_primeira
+                FROM
+                    mat_view_retrabalho_{min_dias}_dias
+                WHERE
+                    "DATA DE FECHAMENTO DO SERVICO" BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+                    {subquery_oficinas_str}
+                    {subquery_secoes_str}
+                    {subquery_os_str}
+                    
+                GROUP BY
+                    "CODIGO DO VEICULO", "DESCRICAO DO MODELO"
+            ) subquery
+            WHERE
+                ranking_retrabalho >= 1  -- Exemplo de filtro pelo ranking
+                {subquery_veiculos_str}
+            ORDER BY 
+                ranking_retrabalho, ranking_correcao, ranking_correcao_primeira;                
+"""
+    rk_correcao_primeira = f'0°'
+    rk_retrabalho = f'0°'
+
+    if len(lista_veiculos) <= 1:
+        df = pd.read_sql(query_ranking_retrabalho_correcao, pgEngine)
+        df = df.rename(columns={
+            "PERC_RETRABALHO": "RETRABALHO",
+            "PERC_CORRECAO_PRIMEIRA": "CORRECAO_PRIMEIRA"
+        })
+        rk_n_retrabalho = df.iloc[0]["ranking_retrabalho"]
+        retra = df.iloc[0]["RETRABALHO"]
+        rk_retrabalho = f'{rk_n_retrabalho}°'
+
+        rk_n_correcao_primeira = df.iloc[0]["ranking_correcao_primeira"]
+        rk_correcao_primeira = f'{rk_n_correcao_primeira}°'
+
+
+    return rk_retrabalho, rk_correcao_primeira
